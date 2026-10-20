@@ -19,20 +19,20 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 📱 Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: 🟢 Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+
+      - name: 📱 Accept Android SDK Licenses
+        run: |
+          yes | sdkmanager --licenses || true
 
       - name: 📦 Install Node Dependencies
-        run: npm ci || npm install
+        run: npm install --legacy-peer-deps
 
       - name: ⚙️ Expo Prebuild (Generate Native Android Project)
-        run: npx expo prebuild --platform android --clean
+        run: npx --yes expo prebuild --platform android --clean
 
       - name: 🔐 Setup Signing Keystore
         run: |
@@ -45,7 +45,7 @@ jobs:
             -validity 10000 \
             -storepass android \
             -keypass android \
-            -dname "CN=NiLoFi, OU=Audio, O=Farhan T. Niloy, L=Dhaka, C=BD"
+            -dname "CN=NiLoFi, OU=Audio, O=Farhan T. Niloy, L=Dhaka, C=BD" || true
 
       - name: 🔨 Build Android APK via Gradle
         working-directory: android
