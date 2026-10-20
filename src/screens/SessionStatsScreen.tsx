@@ -33,7 +33,7 @@ export const SessionStatsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="Session AI Stats" />
+      <Header title="Smart Mood" />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -44,48 +44,48 @@ export const SessionStatsScreen: React.FC = () => {
           <View style={styles.heroTopRow}>
             <View style={styles.pillBadge}>
               <Sparkles size={12} color={THEME.colors.primaryNeon} />
-              <Text style={styles.pillBadgeText}>AI ADAPTIVE LOCK</Text>
+              <Text style={styles.pillBadgeText}>SMART SHUFFLE</Text>
             </View>
             <TouchableOpacity onPress={resetMood} style={styles.resetBtn}>
               <RotateCcw size={14} color={THEME.colors.textMuted} />
-              <Text style={styles.resetText}>Reset Mood</Text>
+              <Text style={styles.resetText}>Reset</Text>
             </TouchableOpacity>
           </View>
 
           <Text style={styles.lockTitle}>
-            {sessionVector.activeLockLabel || 'Analyzing Listening Mood...'}
+            {sessionVector.activeLockLabel || 'Learning Your Music Vibe...'}
           </Text>
           <Text style={styles.lockSubtitle}>
             {sessionVector.activeLockLabel
-              ? 'Queue is dynamically re-ranked based on your latest listens & skips.'
-              : 'Listen to 2+ songs or skip to train your real-time session vector.'}
+              ? 'Your queue adjusts in real time as your mood shifts.'
+              : 'Play or skip a couple of songs to tune the player to your taste.'}
           </Text>
 
           <View style={styles.statsMiniRow}>
             <View style={styles.miniStat}>
               <Text style={styles.miniStatNum}>{sessionVector.totalInteractions}</Text>
-              <Text style={styles.miniStatLabel}>Interactions</Text>
+              <Text style={styles.miniStatLabel}>Songs Played</Text>
             </View>
             <View style={styles.miniDivider} />
             <View style={styles.miniStat}>
               <Text style={styles.miniStatNum}>
                 {Math.round(sessionVector.energy_tempo * 100)}%
               </Text>
-              <Text style={styles.miniStatLabel}>Tempo Weight</Text>
+              <Text style={styles.miniStatLabel}>Energy Level</Text>
             </View>
             <View style={styles.miniDivider} />
             <View style={styles.miniStat}>
               <Text style={styles.miniStatNum}>15%</Text>
-              <Text style={styles.miniStatLabel}>Serendipity</Text>
+              <Text style={styles.miniStatLabel}>Fresh Variety</Text>
             </View>
           </View>
         </View>
 
-        {/* Real-time Vibe Vector Breakdown */}
+        {/* Real-time Vibe Breakdown */}
         <View style={styles.vectorsCard}>
           <View style={styles.vectorsHeader}>
             <Activity size={18} color={THEME.colors.primaryNeon} />
-            <Text style={styles.vectorsTitle}>Live Session Preference Vector</Text>
+            <Text style={styles.vectorsTitle}>Your Current Vibe Profile</Text>
           </View>
 
           {metrics.map((item) => {
@@ -116,16 +116,16 @@ export const SessionStatsScreen: React.FC = () => {
           })}
         </View>
 
-        {/* Algorithm Mechanics Guide */}
+        {/* How It Works Guide */}
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
             <ShieldCheck size={18} color={THEME.colors.success} />
-            <Text style={styles.infoTitle}>100% On-Device & Free-Tier</Text>
+            <Text style={styles.infoTitle}>100% Private & Offline</Text>
           </View>
           <Text style={styles.infoDesc}>
-            • <Text style={{ color: '#FFF' }}>Skip Penalty (-2.5):</Text> Skipping early drops that genre priority immediately.{'\n'}
-            • <Text style={{ color: '#FFF' }}>Completion Boost (+3.5):</Text> Finishing a song increases matching vibes in the upcoming queue.{'\n'}
-            • <Text style={{ color: '#FFF' }}>Zero Cloud Costs:</Text> All vectors, clustering, and cosine similarity calculations execute entirely in local memory.
+            • <Text style={{ color: '#FFF' }}>Quick Skip:</Text> Skipping a song tells NiLoFi to play less of that genre.{'\n'}
+            • <Text style={{ color: '#FFF' }}>Smart Boost:</Text> Finishing a song tells NiLoFi to queue more matching tracks.{'\n'}
+            • <Text style={{ color: '#FFF' }}>Completely Private:</Text> Learns locally on your device with no internet needed.
           </Text>
         </View>
 

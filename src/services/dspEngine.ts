@@ -17,7 +17,7 @@ export const EQ_FREQUENCIES = [
 export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   {
     id: 'flat',
-    name: 'Flat (Studio Reference)',
+    name: 'Natural (Original)',
     gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     bassBoost: 0,
     virtualizer: 0,
@@ -25,7 +25,7 @@ export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   },
   {
     id: 'punchy_bass',
-    name: 'Punchy Sub-Bass',
+    name: 'Bass Boost',
     gains: [7, 6, 4, 1, 0, -1, 0, 1, 2, 2],
     bassBoost: 450,
     virtualizer: 150,
@@ -33,7 +33,7 @@ export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   },
   {
     id: 'vocal_clarity',
-    name: 'Vocal & Acoustic Clarity',
+    name: 'Vocal Clarity',
     gains: [-2, -1, 0, 2, 4, 4, 3, 2, 1, 0],
     bassBoost: 50,
     virtualizer: 200,
@@ -41,7 +41,7 @@ export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   },
   {
     id: 'punjabi_dhol',
-    name: 'Bollywood & Punjabi Dhol',
+    name: 'Party & Dhol Beats',
     gains: [8, 7, 5, 2, 0, 1, 3, 4, 3, 2],
     bassBoost: 600,
     virtualizer: 250,
@@ -49,7 +49,7 @@ export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   },
   {
     id: 'late_night',
-    name: 'Late Night Warmth',
+    name: 'Warm & Relaxing',
     gains: [4, 3, 2, 1, 0, 0, -1, -2, -3, -4],
     bassBoost: 200,
     virtualizer: 100,
@@ -57,7 +57,7 @@ export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   },
   {
     id: 'electronic_edm',
-    name: 'Electronic / EDM',
+    name: 'Dance & Electronic',
     gains: [6, 5, 2, 0, -1, 2, 4, 5, 5, 4],
     bassBoost: 500,
     virtualizer: 400,
@@ -65,7 +65,7 @@ export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   },
   {
     id: 'treble_sparkle',
-    name: 'Treble Sparkle',
+    name: 'Bright & Crisp',
     gains: [-2, -1, 0, 0, 1, 2, 4, 6, 7, 8],
     bassBoost: 0,
     virtualizer: 300,

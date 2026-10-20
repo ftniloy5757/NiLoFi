@@ -32,30 +32,40 @@ Imagine having a DJ sitting beside you who watches your facial expressions. If y
 
 ---
 
-### B. Studio-Grade 10-Band Equalizer & Anti-Clipping Soft Limiter
+### B. Studio-Grade 10-Band Equalizer & Clean Sound Guard
 In many music player apps, if you turn the bass all the way up, the sound starts crackling and distorting. This is called **digital clipping**—the audio signal is pushed beyond the maximum limits of your phone's digital-to-analog converter (DAC).
 
 Here is how NiLoFi solves that:
 - **Direct Native Android Binding:** We built a custom Kotlin module (`modules/nilofi-audio-effects`) that talks directly to Android's built-in `android.media.audiofx` framework.
-- **Auto-Preamp Gain Formula:**
+- **Clean Sound Guard (Auto-Balancing Peak Control):**
   $$\text{PreAmpGain} = \min(0, -1 \times \text{Peak Boost})$$
-  Whenever you boost the bass by `+8dB`, NiLoFi automatically lowers the overall pre-amp volume by `-8dB` in real-time. This guarantees the audio waveform **never flatlines or clips**, keeping the bass punchy, tight, and crystal-clear without distorting your phone speakers or earbuds.
-- **Scientifically Tuned Presets:** Includes 7 built-in curves calibrated for different genres (including *Bollywood & Punjabi Dhol*, *Punchy Sub-Bass*, *Vocal Clarity*, and *Late Night Warmth*).
-- **Output Device Memory:** NiLoFi remembers whether you are listening on your phone speaker, Bluetooth earbuds, wired headphones, or your car stereo, and automatically applies your saved EQ curve for that specific device.
+  Whenever you boost the bass, NiLoFi automatically balances the internal pre-amp volume in real-time. This guarantees the audio waveform **never flatlines or clips**, keeping the bass punchy, tight, and crystal-clear without distorting your phone speakers or earbuds.
+- **User-Friendly Sound Presets:** Includes calibrated curves with simple names: *Natural (Original)*, *Bass Boost*, *Vocal Clarity*, *Party & Dhol Beats*, *Warm & Relaxing*, and *Bright & Crisp*.
+- **Deep Bass & Surround Sound:** One-tap quick boost controls for enhanced low frequencies and wide spatial audio.
+- **Audio Device Memory:** NiLoFi remembers whether you are listening on your phone speaker, Bluetooth earbuds, wired headphones, or your car stereo, and automatically restores your preferred sound profile.
 
 ---
 
-### C. Two-Tier High-Speed Library Scanner
+### C. Custom User Playlists & Smart Collections (100% Offline)
+Users can now build and organize their personal music library effortlessly:
+1. **User Custom Playlists:** Create unlimited custom playlists (e.g., "Late Night Chill", "Workout", "Favorites").
+2. **1-Tap Add from Library:** Every song card in your Library features a **Playlist icon (≡+)**. Tapping it opens an instant bottom sheet where you can add or remove the song with a single checkmark, or even create a new playlist on the fly.
+3. **Smart Collections:** In the **Playlists** tab, songs are also automatically organized into smart collections based on language (*Punjabi, Bollywood, Bangla, English*), era (*90s, 2000s, 2010s, 2020s*), and vibe (*Rain & Late Night, Romantic, Party Bangers*).
+4. **Persistent Offline Storage:** Custom playlists are stored in a dedicated, structured JSON file in your phone's app sandbox (`nilofi_playlists.json`) using `expo-file-system`. No accounts, no logins, and zero cloud uploads—your playlists remain 100% private on your phone.
+
+---
+
+### D. Two-Tier High-Speed Library Scanner
 If you have 5,000 songs on your phone, loading all of them into a mobile app can cause the app to freeze.
 
 NiLoFi uses a **Two-Tier Architecture**:
 1. **Tier 1 (Instant Indexing):** Instead of manually opening each MP3 file, NiLoFi queries Android's native `MediaStore` database cursor. It indexes thousands of song titles, artists, albums, and durations in **under 400 milliseconds**.
 2. **Tier 2 (Background Lazy Loading):** Embedded high-resolution album art, waveform amplitude peaks, and `.lrc` lyrics are loaded quietly in the background as you scroll, keeping the user interface running at a locked **120Hz**.
-3. **Instant Demo Seed Tracks:** For your first launch before you transfer music, NiLoFi includes 5 royalty-free offline lofi, romantic, and party tracks with pre-calculated waveforms and synced lyrics so you can test all features immediately.
+3. **Instant Demo Seed Tracks:** For your first launch before you transfer music, NiLoFi includes royalty-free offline lofi, romantic, and party tracks with pre-calculated waveforms and synced lyrics so you can test all features immediately.
 
 ---
 
-### D. Zero-Lag Synced Lyrics (`.LRC` Engine)
+### E. Zero-Lag Synced Lyrics (`.LRC` Engine)
 Lyrics in `.lrc` files have timestamps like `[01:23.45]`. In older players, scanning through hundreds of lines every second can lag your phone.
 
 NiLoFi uses a **Binary Search Algorithm ($O(\log N)$)**:
@@ -64,7 +74,7 @@ NiLoFi uses a **Binary Search Algorithm ($O(\log N)$)**:
 
 ---
 
-### E. Smart Sleep Timer with 30-Second Micro-Fade
+### F. Smart Sleep Timer with 30-Second Micro-Fade
 Most sleep timers cut the music off abruptly, which can startle you awake. 
 NiLoFi's sleep timer monitors your target bedtime. During the **final 30 seconds**, it gradually ramps the volume down from 100% to 0% in a smooth taper. Once the music fades out, playback pauses and your volume is reset back to normal for the next day.
 
@@ -95,37 +105,38 @@ When NiLoFi opens, Android will request:
 
 ## 4. How to Use Every Feature in NiLoFi
 
-### 1. Playing Music & Testing Adaptive Shuffle
+### 1. Playing Music & Testing Smart Shuffle
 - In the **Library** tab, tap any track to start playing.
-- The **Mini-Player** will float up from the bottom.
-- Tap on the Mini-Player to open the **Full-Screen Now Playing** view.
-- Make sure the **Shuffle** button on the bottom left is turned **ON** (it will glow neon blue and say `Adaptive ON`).
-- **Try the AI:** Skip 2 tracks in the first 10 seconds. Notice how the app quickly adjusts and eliminates that genre from the queue!
-- Look at the top of the player: once you listen to 2 songs, an **Adaptive Lock Pill** will appear (e.g., *"Adaptive Lock: Late Night Chill"*).
+- The **Mini-Player** will float up from the bottom. Tap it to open the full-screen player.
+- Tap **Smart Shuffle** at the top or the shuffle button on the player (it glows neon blue when active).
+- **Test the on-device AI:** Skip 2 tracks quickly in the first 10 seconds. Notice how NiLoFi immediately adapts and queues songs matching your preference!
 
-### 2. Using the Waveform Seekbar
-- Below the album art, you will see a 40-bar dynamic visualizer.
-- Tap or drag your finger across the bars to scrub directly to that part of the song.
+### 2. Creating & Managing Custom Playlists
+- **To create a playlist:** Switch to the **Playlists** tab, tap **My Playlists**, then tap **+ Create New Playlist**. Enter a title and description, and tap **Create**.
+- **To add songs:** In the **Library** tab, tap the **Playlist icon (≡+)** on any song. Tap any of your playlists to immediately add or remove the song. You can also tap **+ Create New Playlist** directly inside this menu.
+- **To play or manage:** In the **Playlists** tab, tap any custom playlist card to view all tracks, play them in sequence, or remove individual songs.
 
-### 3. Reading Synced Lyrics
-- While a track is playing, tap the **SYNCED LYRICS** button at the bottom of the Now Playing screen.
-- A glassmorphic modal will slide up showing real-time, auto-scrolling lyrics.
+### 3. Tuning the Equalizer (Simplified & Clean)
+- Switch to the **Equalizer** tab.
+- Toggle **Sound Enhancer: ON** at the top.
+- Pick any preset (e.g., *Bass Boost*, *Vocal Clarity*, or *Party & Dhol Beats*).
+- You can fine-tune individual frequency bars under **Custom Sound Tuning**.
+- Tap **Deep Bass** or **Surround Sound** for immediate bass impact and 3D depth.
+- The **Clean Sound Guard** automatically prevents distortion and protects your speakers.
 
-### 4. Tuning the 10-Band Equalizer
-- Switch to the **DSP EQ** tab from the bottom navigation bar.
-- Tap any preset chip at the top (e.g., *Punchy Sub-Bass* or *Bollywood & Punjabi Dhol*).
-- Notice the **Anti-Clipping Auto-Gain** meter at the top adjust automatically to protect your speakers.
-- Adjust the **Sub-Bass Boost** and **3D Soundstage** buttons to add deep low-end thump and wider spatial presence.
+### 4. Viewing Your Smart Mood Profile
+- Switch to the **Smart Mood** tab.
+- View your **Live Vibe Profile** showing your current listening balance (Lofi, Romantic, Party, Acoustic, etc.).
+- Tap **Reset** anytime you want to clear session memory and start fresh.
 
-### 5. Checking Your Session Mood Telemetry
-- Switch to the **Session AI** tab.
-- Here you can see your live preference vector: horizontal meters showing your real-time affinity for Lofi, Romance, Energy, and Acoustics.
-- If you want a fresh start, tap the **"Reset Mood"** button.
+### 5. Using Synced Lyrics
+- While a track is playing, tap the **SYNCED LYRICS** button at the bottom of the player.
+- The lyrics will automatically scroll with timestamps in sync with the song.
 
-### 6. Setting a Gentle Sleep Timer
+### 6. Setting a Sleep Timer
 - Tap the **Moon** icon in the top header.
 - Choose **15m**, **30m**, **45m**, or **60m**.
-- As you drift to sleep, the music will automatically fade out smoothly over the last 30 seconds.
+- As you fall asleep, the volume will gently fade down over the final 30 seconds.
 
 ---
 

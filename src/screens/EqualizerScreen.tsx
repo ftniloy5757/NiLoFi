@@ -51,7 +51,7 @@ export const EqualizerScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="DSP Equalizer" />
+      <Header title="Equalizer" />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -61,12 +61,12 @@ export const EqualizerScreen: React.FC = () => {
         <View style={styles.topStatusCard}>
           <View style={styles.deviceStatus}>
             {getRouteIcon(activeRoute)}
-            <Text style={styles.deviceText}>Output: {activeRoute} Profile</Text>
+            <Text style={styles.deviceText}>Audio Device: {activeRoute}</Text>
           </View>
 
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>
-              {isEQEnabled ? 'STUDIO DSP ON' : 'DSP BYPASS'}
+              {isEQEnabled ? 'Sound Enhancer: ON' : 'Sound Enhancer: OFF'}
             </Text>
             <Switch
               value={isEQEnabled}
@@ -80,12 +80,12 @@ export const EqualizerScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Anti-Clipping Soft Limiter Meter */}
+        {/* Clean Sound Limiter Meter */}
         <View style={styles.limiterCard}>
           <View style={styles.limiterHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <ShieldCheck size={18} color={THEME.colors.success} />
-              <Text style={styles.limiterTitle}>Anti-Clipping Auto-Gain</Text>
+              <Text style={styles.limiterTitle}>Clean Sound Guard</Text>
             </View>
             <Text
               style={[
@@ -93,18 +93,18 @@ export const EqualizerScreen: React.FC = () => {
                 preAmpGain < 0 ? { color: THEME.colors.warning } : { color: THEME.colors.success },
               ]}
             >
-              Pre-Amp: {preAmpGain.toFixed(1)} dB
+              {preAmpGain < 0 ? 'Peak Control: Active' : 'Sound Guard: Safe'}
             </Text>
           </View>
           <Text style={styles.limiterDesc}>
             {preAmpGain < 0
-              ? 'Automatically reducing master pre-amp to prevent speaker distortion.'
-              : 'Zero boost detected — full natural dynamic range active.'}
+              ? 'Automatically softens harsh volume spikes to keep music crisp and clear.'
+              : 'Natural sound balance active with full dynamic range.'}
           </Text>
         </View>
 
         {/* Preset Selector Chips */}
-        <Text style={styles.sectionHeader}>SCIENTIFICALLY TUNED PRESETS</Text>
+        <Text style={styles.sectionHeader}>SOUND PRESETS</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -134,7 +134,7 @@ export const EqualizerScreen: React.FC = () => {
         {/* 10-Band Graphic Equalizer Sliders */}
         <View style={styles.eqCard}>
           <View style={styles.eqCardHeader}>
-            <Text style={styles.eqCardTitle}>10-Band Graphic Equalizer</Text>
+            <Text style={styles.eqCardTitle}>Custom Sound Tuning</Text>
             <TouchableOpacity
               onPress={() => selectEQPreset(BUILT_IN_PRESETS[0])}
               style={styles.resetBtn}
@@ -196,11 +196,11 @@ export const EqualizerScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Bass Boost & Virtualizer Hardware Knobs */}
+        {/* Bass & Surround Sound Controls */}
         <View style={styles.fxRow}>
-          {/* Bass Boost */}
+          {/* Deep Bass */}
           <View style={styles.fxCard}>
-            <Text style={styles.fxTitle}>Sub-Bass Boost</Text>
+            <Text style={styles.fxTitle}>Deep Bass</Text>
             <Text style={styles.fxValue}>
               {Math.round((activePreset.bassBoost / 1000) * 100)}%
             </Text>
@@ -228,9 +228,9 @@ export const EqualizerScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Virtualizer */}
+          {/* Surround Sound */}
           <View style={styles.fxCard}>
-            <Text style={styles.fxTitle}>3D Soundstage</Text>
+            <Text style={styles.fxTitle}>Surround Sound</Text>
             <Text style={styles.fxValue}>
               {Math.round((activePreset.virtualizer / 1000) * 100)}%
             </Text>

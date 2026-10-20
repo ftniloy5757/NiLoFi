@@ -23,13 +23,13 @@
 
 ### 💎 Key Highlights
 
-- 🧠 **Session-Aware AI Adaptive Shuffle:** Replaces traditional pseudo-random shuffle with an on-device contextual vector engine that analyzes completion rates, early skips, and manual selections to learn your active listening vibe in real-time.
-- 🎛️ **Studio 10-Band Graphic Equalizer:** Direct hardware binding to Android's `Equalizer`, `BassBoost`, `Virtualizer`, and `LoudnessEnhancer` with an **Anti-Clipping Soft Limiter** that dynamically reduces pre-amp gain to eliminate speaker crackle.
-- 🏷️ **Smart Categorization & Auto-Albums:** Auto-buckets thousands of local tracks by language (Punjabi, Bollywood, Bangla, English), era (90s, 2000s, 2010s, 2020s), and mood (Rain & Lofi, Romantic, Mashups & Remixes) in milliseconds.
-- 🔒 **Native Android Lock-Screen Controls:** Persistent foreground media playback with 5 notification center buttons (including a dedicated **Adaptive Shuffle Toggle**).
+- 🧠 **Smart Mood & Adaptive Shuffle:** Replaces traditional pseudo-random shuffle with an on-device contextual AI engine that analyzes completion rates, early skips, and manual selections to learn your active listening vibe in real-time.
+- 📁 **Custom User Playlists & Smart Collections:** Create your own custom playlists, add songs with 1-tap from your library, and browse auto-generated smart collections (by mood, genre, and era)—all persisted locally and 100% offline.
+- 🎛️ **Studio 10-Band Equalizer & Clean Sound Guard:** Direct hardware binding to Android's `Equalizer`, `BassBoost`, `Virtualizer`, and `LoudnessEnhancer` with a **Clean Sound Guard (Anti-Clipping)** that automatically balances pre-amp levels to eliminate speaker crackle.
+- 🔒 **Native Android Lock-Screen Controls:** Persistent foreground media playback with 5 notification center buttons (including a dedicated **Smart Shuffle Toggle**).
 - 📜 **Synced LRC & Waveform Scrubber:** 40-bar interactive amplitude seekbar and glassmorphic synced lyrics with binary-search time tracking.
-- 🌙 **OLED Pitch Black Aesthetic:** Deep `#000000` surface designed for zero battery waste on AMOLED screens, accented with Electric Royal Blue (`#2563EB`) and Neon Cyan (`#38BDF8`).
-- 💸 **100% Free-Tier:** Zero cloud subscriptions, zero third-party API keys, and automated GitHub Actions to build installable APKs completely free.
+- 🌙 **Minimalist OLED Dark Aesthetic:** Deep `#000000` surface designed for zero battery waste on AMOLED screens, accented with Electric Royal Blue (`#2563EB`) and Neon Cyan (`#38BDF8`), free from confusing technical jargons.
+- 💸 **100% Free-Tier & Private:** Zero cloud subscriptions, zero third-party API keys, zero tracking, and automated GitHub Actions to build installable APKs completely free.
 
 ---
 
@@ -40,19 +40,20 @@ NiLoFi Application Core
 ├── Native Hardware DSP (Kotlin Module)
 │   ├── android.media.audiofx.Equalizer (10 Bands: 31Hz - 16kHz)
 │   ├── android.media.audiofx.BassBoost & Virtualizer
-│   └── Anti-Clipping Soft Limiter (Auto-PreAmp Gain)
-├── Contextual Session Engine
+│   └── Clean Sound Guard (Auto-Balancing Peak Limiter)
+├── Smart Mood Engine (On-Device AI)
 │   ├── Track Vectorization (Romantic, Sad, Lofi, Energy, Acoustic, Mashup)
 │   ├── Real-Time Skip Penalty (-2.5) & Completion Boost (+3.5)
-│   └── Cosine Similarity Queue Re-Ranking with 15% Serendipity
-├── Two-Tier Media Scanner
+│   └── Cosine Similarity Queue Re-Ranking with 15% Fresh Variety
+├── Two-Tier Media Scanner & Storage
 │   ├── Tier 1: High-Speed Native MediaStore Cursor (< 500ms)
-│   └── Tier 2: Deep Tag & Synced LRC Parser
-└── UI Experience (OLED 120Hz)
-    ├── Library & Multi-Filter Search
-    ├── Smart Auto-Albums & Custom Playlists
-    ├── DSP Studio Equalizer & Output Device Profiles
-    ├── Session Telemetry Radar
+│   ├── Tier 2: Deep Tag & Synced LRC Parser
+│   └── Offline Custom Playlist Storage (JSON / File System)
+└── UI Experience (OLED 120Hz & Minimalist)
+    ├── Library (Search, Filter Pills & 1-Tap Add to Playlist)
+    ├── Playlists (Smart Collections & User Custom Playlists)
+    ├── Equalizer (Sound Enhancer, Presets, Deep Bass, Surround)
+    ├── Smart Mood (Live Vibe Profile & Mood Reset)
     └── Expandable Floating Mini-Player & Hero Now-Playing
 ```
 
@@ -98,12 +99,14 @@ npx expo run:android
 
 | Feature | How to Use |
 |---|---|
-| **Adaptive Shuffle** | Tap the **Shuffle** button on the Now Playing screen or Library. The badge will illuminate neon blue (`Adaptive ON`). The engine will immediately begin learning your mood. |
-| **Reset Mood** | If your listening mood changes abruptly, tap **Reset Mood** on the Now Playing screen or Session AI tab to clear the vector weights. |
-| **10-Band DSP Equalizer** | Switch to the **DSP EQ** tab. Pick from 8 scientifically calibrated curves or manually adjust sliders. Notice the **Anti-Clipping Auto-Gain** automatically protect against audio distortion. |
+| **Smart Shuffle** | Tap the **Shuffle** button on the Now Playing screen or Library. The badge will illuminate neon blue (`Smart Shuffle`). The engine will immediately begin learning your mood. |
+| **Custom Playlists** | In the **Playlists** tab, tap **My Playlists**, then **+ Create New Playlist**. To add songs from your Library, tap the **Playlist icon (≡+)** on any track card and check your desired playlist. |
+| **Reset Mood** | If your listening mood changes abruptly, tap **Reset** on the Now Playing screen or Smart Mood tab to clear session memory. |
+| **Equalizer & Sound Presets** | Switch to the **Equalizer** tab. Pick from tuned presets (like *Bass Boost*, *Vocal Clarity*, or *Party & Dhol Beats*) or adjust the custom tuning sliders. The **Clean Sound Guard** automatically prevents distortion. |
+| **Deep Bass & Surround** | Boost low-end thump or widen spatial presence with 1 tap on the **Deep Bass** and **Surround Sound** controls. |
 | **Synced Lyrics** | While a song is playing, tap **SYNCED LYRICS** at the bottom of the Now Playing screen. If a `.lrc` file exists with matching name, lyrics scroll in real-time. |
 | **Sleep Timer** | Tap the **Moon** icon in the header. Choose 15m, 30m, 45m, or 60m. Over the final 30 seconds, NiLoFi smoothly ramps down the volume to zero. |
-| **Lock-Screen Controls** | Lock your phone while music is playing. You will see high-resolution artwork and 5 controls including the Adaptive Shuffle toggle directly on your lock screen. |
+| **Lock-Screen Controls** | Lock your phone while music is playing. You will see high-resolution artwork and 5 controls including the Smart Shuffle toggle directly on your lock screen. |
 
 ---
 

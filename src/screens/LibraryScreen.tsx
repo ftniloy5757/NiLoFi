@@ -6,13 +6,18 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
+  Modal,
 } from 'react-native';
 import {
   Play,
   Shuffle,
   Heart,
   Music2,
-  SlidersHorizontal,
+  ListPlus,
+  Check,
+  Plus,
+  X,
+  Sparkles,
 } from 'lucide-react-native';
 import THEME from '../constants/theme';
 import usePlayerStore from '../store/usePlayerStore';
@@ -31,10 +36,17 @@ export const LibraryScreen: React.FC = () => {
     favorites,
     isAdaptiveShuffle,
     toggleAdaptiveShuffle,
+    customPlaylists,
+    addTrackToPlaylist,
+    removeTrackFromPlaylist,
+    createPlaylist,
   } = usePlayerStore();
 
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'favorites' | 'punjabi' | 'bollywood' | 'lofi'>('all');
+  const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [isCreatingInline, setIsCreatingInline] = useState(false);
 
   const filteredTracks = tracks.filter((track) => {
     const matchesSearch =
@@ -57,22 +69,31 @@ export const LibraryScreen: React.FC = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const handleCreateAndAdd = async () => {
+    if (!newPlaylistName.trim() || !playlistModalTrack) return;
+    const pl = await createPlaylist(newPlaylistName.trim());
+    await addTrackToPlaylist(pl.id, playlistModalTrack.id);
+    setNewPlaylistName('');
+    setIsCreatingInline(false);
+  };
+
   const renderTrackItem = ({ item }: { item: Track }) => {
     const isCurrent = currentTrack?.id === item.id;
     const isFav = favorites.includes(item.id);
 
     return (
-      <TouchableOpacity
-        style={[styles.trackCard, isCurrent && styles.activeTrackCard]}
-        activeOpacity={0.7}
-        onPress={() => {
-          if (isCurrent) {
-            togglePlayPause();
-          } else {
-            playTrack(item);
-          }
-        }}
-      >
+      <View style={[styles.trackCard, isCurrent && styles.activeTrackCard]}>
+        <TouchableOpacity
+          style={styles.trackMainTouch}
+          activeOpacity={0.7}
+          onPress={() => {
+            if (isCurrent) {
+              togglePlayPause();
+            } else {
+              playTrack(item);
+            }
+          }}
+        >
         <View style={styles.iconBox}>
           <Music2
             size={20}
@@ -97,7 +118,18 @@ export const LibraryScreen: React.FC = () => {
             <Text style={styles.durationText}>{formatDuration(item.duration)}</Text>
           </View>
         </View>
+      </TouchableOpacity>
 
+        {/* Add to Playlist Button */}
+        <TouchableOpacity
+          onPress={() => setPlaylistModalTrack(item)}
+          style={styles.actionIconButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ListPlus size={18} color={THEME.colors.textMuted} />
+        </TouchableOpacity>
+
+        {/* Favorite Heart Button */}
         <TouchableOpacity
           onPress={() => toggleFavorite(item.id)}
           style={styles.heartButton}
@@ -109,7 +141,7 @@ export const LibraryScreen: React.FC = () => {
             fill={isFav ? THEME.colors.danger : 'transparent'}
           />
         </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -121,7 +153,7 @@ export const LibraryScreen: React.FC = () => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search local songs, artists, albums..."
+          placeholder="Search songs, artists..."
           placeholderTextColor={THEME.colors.textMuted}
           value={search}
           onChangeText={setSearch}
@@ -179,7 +211,7 @@ export const LibraryScreen: React.FC = () => {
                 isAdaptiveShuffle && { color: THEME.colors.primaryNeon },
               ]}
             >
-              {isAdaptiveShuffle ? 'Adaptive ON' : 'Shuffle'}
+              {isAdaptiveShuffle ? 'Smart Shuffle' : 'Shuffle'}
             </Text>
           </TouchableOpacity>
 
@@ -204,6 +236,109 @@ export const LibraryScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         ListFooterComponent={<CourtesyFooter />}
       />
+
+      {/* Modal: Add to Playlist */}
+      <Modal
+        visible={!!playlistModalTrack}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setPlaylistModalTrack(null);
+          setIsCreatingInline(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Add to Playlist</Text>
+                <Text style={styles.modalSubtitle} numberOfLines={1}>
+                  {playlistModalTrack?.title} • {playlistModalTrack?.artist}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setPlaylistModalTrack(null);
+                  setIsCreatingInline(false);
+                }}
+              >
+                <X size={22} color={THEME.colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* List of custom playlists */}
+            <FlatList
+              data={customPlaylists}
+              keyExtractor={(pl) => pl.id}
+              style={{ maxHeight: 240, marginVertical: 8 }}
+              renderItem={({ item: pl }) => {
+                const isAdded = playlistModalTrack
+                  ? pl.trackIds.includes(playlistModalTrack.id)
+                  : false;
+
+                return (
+                  <TouchableOpacity
+                    style={styles.playlistSelectItem}
+                    onPress={() => {
+                      if (!playlistModalTrack) return;
+                      if (isAdded) {
+                        removeTrackFromPlaylist(pl.id, playlistModalTrack.id);
+                      } else {
+                        addTrackToPlaylist(pl.id, playlistModalTrack.id);
+                      }
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.playlistSelectName}>{pl.name}</Text>
+                      <Text style={styles.playlistSelectSub}>
+                        {pl.trackIds.length} {pl.trackIds.length === 1 ? 'song' : 'songs'}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.checkCircle,
+                        isAdded && styles.activeCheckCircle,
+                      ]}
+                    >
+                      {isAdded && <Check size={14} color="#FFF" />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            {/* Inline New Playlist Box */}
+            {isCreatingInline ? (
+              <View style={styles.inlineCreateBox}>
+                <TextInput
+                  style={styles.inlineInput}
+                  placeholder="New playlist name..."
+                  placeholderTextColor={THEME.colors.textMuted}
+                  value={newPlaylistName}
+                  onChangeText={setNewPlaylistName}
+                  autoFocus
+                />
+                <TouchableOpacity
+                  style={styles.inlineSaveBtn}
+                  onPress={handleCreateAndAdd}
+                >
+                  <Text style={styles.inlineSaveText}>Save & Add</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.newPlaylistTrigger}
+                onPress={() => setIsCreatingInline(true)}
+              >
+                <Plus size={16} color={THEME.colors.primaryNeon} />
+                <Text style={styles.newPlaylistTriggerText}>
+                  Create New Playlist
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -220,12 +355,12 @@ const styles = StyleSheet.create({
   searchInput: {
     backgroundColor: THEME.colors.card,
     borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: THEME.colors.textPrimary,
+    fontSize: 14,
     borderWidth: 1,
     borderColor: THEME.colors.cardBorder,
-    color: THEME.colors.textPrimary,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
   },
   filterRow: {
     flexDirection: 'row',
@@ -233,32 +368,36 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   filterChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: THEME.colors.card,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: THEME.colors.cardBorder,
   },
   activeFilterChip: {
     backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primaryNeon,
   },
   filterText: {
     color: THEME.colors.textSecondary,
     fontSize: 11,
     fontWeight: '700',
+    letterSpacing: 0.5,
   },
   activeFilterText: {
     color: '#FFF',
   },
   actionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    marginBottom: 8,
   },
   songCountText: {
-    color: THEME.colors.textSecondary,
+    color: THEME.colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -269,13 +408,13 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.card,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
+    backgroundColor: THEME.colors.card,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: THEME.colors.cardBorder,
-    marginRight: 8,
   },
   activeShuffleBtn: {
     borderColor: THEME.colors.primaryNeon,
@@ -285,35 +424,40 @@ const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
-    marginLeft: 4,
+    marginLeft: 5,
   },
   playAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    backgroundColor: THEME.colors.primary,
   },
   playAllText: {
     color: '#FFF',
     fontSize: 12,
     fontWeight: '700',
-    marginLeft: 4,
+    marginLeft: 5,
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 120,
+    paddingBottom: 110,
   },
   trackCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME.colors.card,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 12,
     marginVertical: 4,
     borderWidth: 1,
     borderColor: THEME.colors.cardBorder,
+  },
+  trackMainTouch: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   activeTrackCard: {
     borderColor: THEME.colors.primaryNeon,
@@ -322,20 +466,19 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
   trackDetails: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
   },
   trackTitle: {
     color: THEME.colors.textPrimary,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   activeTrackTitle: {
     color: THEME.colors.primaryNeon,
@@ -348,27 +491,134 @@ const styles = StyleSheet.create({
   trackArtist: {
     color: THEME.colors.textSecondary,
     fontSize: 12,
-    maxWidth: 120,
+    maxWidth: 110,
   },
   pillBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 1,
-    marginLeft: 6,
+    marginHorizontal: 8,
   },
   pillText: {
     color: THEME.colors.textMuted,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   durationText: {
     color: THEME.colors.textMuted,
     fontSize: 11,
-    marginLeft: 'auto',
+  },
+  actionIconButton: {
+    padding: 6,
+    marginRight: 4,
   },
   heartButton: {
     padding: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#0F172A',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    borderWidth: 1,
+    borderColor: THEME.colors.cardBorder,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalSubtitle: {
+    color: THEME.colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  playlistSelectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  playlistSelectName: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  playlistSelectSub: {
+    color: THEME.colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: THEME.colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeCheckCircle: {
+    backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primaryNeon,
+  },
+  inlineCreateBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  inlineInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 8,
+    padding: 10,
+    color: '#FFF',
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  inlineSaveBtn: {
+    backgroundColor: THEME.colors.primary,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginLeft: 8,
+  },
+  inlineSaveText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  newPlaylistTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+    borderStyle: 'dashed',
+  },
+  newPlaylistTriggerText: {
+    color: THEME.colors.primaryNeon,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });
 

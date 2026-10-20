@@ -10,10 +10,12 @@ web-build/
 dist/
 
 # Android generated
-android/app/build/
+android/
+**/build/
 android/.gradle/
 *.keystore
-!android/app/debug.keystore
+local.properties
+
 
 # macOS
 .DS_Store

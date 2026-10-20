@@ -86,7 +86,7 @@ export default function App() {
               name="SmartAlbums"
               component={SmartAlbumsScreen}
               options={{
-                tabBarLabel: 'Smart Albums',
+                tabBarLabel: 'Playlists',
                 tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} />,
               }}
             />
@@ -94,7 +94,7 @@ export default function App() {
               name="Equalizer"
               component={EqualizerScreen}
               options={{
-                tabBarLabel: 'DSP EQ',
+                tabBarLabel: 'Equalizer',
                 tabBarIcon: ({ color, size }) => <Sliders color={color} size={size} />,
               }}
             />
@@ -102,7 +102,7 @@ export default function App() {
               name="SessionStats"
               component={SessionStatsScreen}
               options={{
-                tabBarLabel: 'Session AI',
+                tabBarLabel: 'Smart Mood',
                 tabBarIcon: ({ color, size }) => <Activity color={color} size={size} />,
               }}
             />

@@ -106,7 +106,7 @@ export const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({
         {/* Sleep Timer Picker Overlay */}
         {showTimerPicker && (
           <View style={styles.timerDropdown}>
-            <Text style={styles.timerTitle}>Sleep Timer (Smooth 30s Fade)</Text>
+            <Text style={styles.timerTitle}>Sleep Timer (Gentle Fade Out)</Text>
             <View style={styles.timerOptionsRow}>
               {[15, 30, 45, 60].map((mins) => (
                 <TouchableOpacity

@@ -62,16 +62,16 @@ The goal is to surpass apps like Poweramp, Musicolet, and Samsung Music by combi
 4. **UI Session Vibe Pill:**
    - Live badge on Now Playing (e.g., *"Adaptive Lock: Late Night Chill"*) with a 1-tap **"Reset Mood"** button.
 
-## C. Adaptive Smart Playlist & Auto-Album Classifier
-1. **By Language & Region:** Auto-grouped into *Punjabi, Hindi / Bollywood, Bangla, English, Instrumental*.
-2. **By Era:** Auto-bucketed into *1990s, 2000s, 2010s, 2020s*.
-3. **By Vibe & Trend:**
-   - *Rain & Late Night* (`rain`, `barish`, `monsoon`, `acoustic`, `lofi`, `chill`).
-   - *Romantic & Melody* (romantic keywords, acoustic love songs).
-   - *Mashups & Remixes* (`mashup`, `remix`, `flip`, `bootleg`, `dj`).
-   - *Trending & High-Velocity* (tracks with highest replay counts).
-4. **Custom Smart Rule Builder:**
-   - Create custom criteria with boolean tag filters (`Language + Decade + Keyword`).
+## C. Playlists: Custom User Playlists & Smart Collections
+1. **User-Created Custom Playlists:**
+   - Full support for creating, naming, describing, and deleting custom playlists.
+   - Dedicated local offline JSON storage (`nilofi_playlists.json`) via `expo-file-system`.
+   - 1-tap add/remove track modal directly from Library track cards via `ListPlus` icon.
+   - Playlist detail view with instant sequential playback and per-track removal.
+2. **Automated Smart Collections:**
+   - By Language & Region: Auto-grouped into *Punjabi, Hindi / Bollywood, Bangla, English, Instrumental*.
+   - By Era: Auto-bucketed into *1990s, 2000s, 2010s, 2020s*.
+   - By Vibe & Trend: *Rain & Late Night*, *Romantic & Melody*, *Mashups & Remixes*, *High-Energy Party*.
 
 ## D. Background Playback & Android 13/14/15 Lock Screen Controls
 1. **Foreground Service Hardening:**
@@ -79,7 +79,7 @@ The goal is to surpass apps like Poweramp, Musicolet, and Samsung Music by combi
 2. **Lock Screen & Notification Center Controls:**
    - High-res embedded album art.
    - 5 Lock Screen Actions:
-     1. `Adaptive Shuffle Toggle`
+     1. `Smart Shuffle Toggle`
      2. `Previous Track`
      3. `Play / Pause`
      4. `Next Track`
@@ -93,14 +93,16 @@ The goal is to surpass apps like Poweramp, Musicolet, and Samsung Music by combi
 3. **Smart Sleep Timer:**
    - Intervals: 15m, 30m, 45m, 60m, or "End of Track", with a smooth 30-second volume fade-out.
 
-## F. Ultra-Minimalistic OLED Dark UI Theme
+## F. Ultra-Minimalistic OLED Dark UI Theme (Jargon-Free)
 - **Palette:**
   - Background: Pure Pitch Black (`#000000`).
   - Elevated Cards: Obsidian Slate (`#0B0F17`) with hairline borders (`rgba(255, 255, 255, 0.08)`).
   - Primary Accent: Electric Royal Blue (`#2563EB` with `#3B82F6` glow).
   - Typography: Pure White (`#FFFFFF`) for titles, Cool Grey (`#8E9BAE`) for metadata.
+- **De-Jargonized Minimalist Interface:**
+  - Standardized human-friendly labels: *Playlists*, *Equalizer*, *Smart Mood*, *Clean Sound Guard*, *Sound Enhancer*, *Deep Bass*, *Surround Sound*, *Smart Shuffle*.
 - **Layout & Courtesy:**
-  - 4 Navigation Tabs: **Library**, **Smart Albums**, **DSP Equalizer**, **Session Stats**.
+  - 4 Navigation Tabs: **Library**, **Playlists**, **Equalizer**, **Smart Mood**.
   - Expandable Floating Mini-Player.
   - Bottom Center Courtesy Signature on all main views: `"© 2026 Farhan T. Niloy"`.
 

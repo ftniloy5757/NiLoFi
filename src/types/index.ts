@@ -90,3 +90,12 @@ export interface SleepTimerState {
   initialDurationMinutes: number;
   isFadePhase: boolean; // Last 30 seconds
 }
+
+export interface CustomPlaylist {
+  id: string;
+  name: string;
+  description?: string;
+  trackIds: string[];
+  createdAt: number;
+  accentColor?: string;
+}

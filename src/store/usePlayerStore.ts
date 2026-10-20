@@ -5,12 +5,14 @@ import {
   EqualizerPreset,
   AudioOutputRoute,
   SleepTimerState,
+  CustomPlaylist,
 } from '../types';
 import AudioEngine from '../services/audioEngine';
 import DSPEngine, { BUILT_IN_PRESETS } from '../services/dspEngine';
 import AdaptiveShuffleEngine from '../services/adaptiveShuffle';
 import LibraryScanner from '../services/libraryScanner';
 import SleepTimerService from '../services/sleepTimer';
+import PlaylistStorage from '../services/playlistStorage';
 
 interface PlayerState {
   // Library & Queue
@@ -23,6 +25,7 @@ interface PlayerState {
   duration: number;
   isLoading: boolean;
   searchQuery: string;
+  customPlaylists: CustomPlaylist[];
 
   // AI & Modes
   isAdaptiveShuffle: boolean;
@@ -56,18 +59,36 @@ interface PlayerState {
   cancelSleepTimer: () => void;
   setSearchQuery: (query: string) => void;
   updatePosition: (seconds: number) => void;
+
+  // Custom Playlists Actions
+  createPlaylist: (name: string, description?: string) => Promise<CustomPlaylist>;
+  deletePlaylist: (playlistId: string) => Promise<void>;
+  addTrackToPlaylist: (playlistId: string, trackId: string) => Promise<void>;
+  removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
+  playPlaylist: (playlist: CustomPlaylist) => Promise<void>;
 }
 
+const initialSeeds = LibraryScanner.getDemoSeedTracks();
+const defaultStarterPlaylist: CustomPlaylist = {
+  id: 'starter-1',
+  name: 'Late Night Chill & Lofi',
+  description: 'Relaxed beats and calm melodies',
+  trackIds: ['seed-1', 'seed-4'],
+  createdAt: Date.now(),
+  accentColor: '#38BDF8',
+};
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  tracks: [],
-  queue: [],
+  tracks: initialSeeds,
+  queue: initialSeeds,
   queueIndex: 0,
-  currentTrack: null,
+  currentTrack: initialSeeds[0],
   isPlaying: false,
   position: 0,
-  duration: 0,
-  isLoading: true,
+  duration: initialSeeds[0]?.duration || 0,
+  isLoading: false,
   searchQuery: '',
+  customPlaylists: [defaultStarterPlaylist],
 
   isAdaptiveShuffle: true,
   isRepeat: false,
@@ -81,19 +102,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   initialize: async () => {
     try {
-      await AudioEngine.initialize();
-      const scanned = await LibraryScanner.scanDeviceAudio();
-      
-      const firstTrack = scanned.length > 0 ? scanned[0] : null;
+      await AudioEngine.initialize().catch(() => {});
 
-      set({
-        tracks: scanned,
-        queue: scanned,
-        queueIndex: 0,
-        currentTrack: firstTrack,
-        duration: firstTrack ? firstTrack.duration : 0,
-        isLoading: false,
-      });
+      // Scan device audio
+      try {
+        const scanned = await LibraryScanner.scanDeviceAudio();
+        if (scanned && scanned.length > 0) {
+          const first = scanned[0];
+          set({
+            tracks: scanned,
+            queue: scanned,
+            currentTrack: first,
+            duration: first ? first.duration : 0,
+          });
+        }
+      } catch (scanErr) {
+        console.warn('Audio scan warning:', scanErr);
+      }
+
+      // Load custom playlists from storage
+      try {
+        const savedPlaylists = await PlaylistStorage.loadPlaylists();
+        if (savedPlaylists && savedPlaylists.length > 0) {
+          set({ customPlaylists: savedPlaylists });
+        } else {
+          await PlaylistStorage.savePlaylists([defaultStarterPlaylist]);
+        }
+      } catch (plErr) {
+        console.warn('Playlist load warning:', plErr);
+      }
 
       // Register Sleep Timer callbacks
       SleepTimerService.registerCallbacks(
@@ -325,6 +362,59 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   updatePosition: (seconds: number) => {
     set({ position: seconds });
+  },
+
+  createPlaylist: async (name: string, description?: string) => {
+    const newPlaylist: CustomPlaylist = {
+      id: `pl-${Date.now()}`,
+      name: name.trim() || 'My Playlist',
+      description: description?.trim() || '',
+      trackIds: [],
+      createdAt: Date.now(),
+      accentColor: '#38BDF8',
+    };
+    const updated = [newPlaylist, ...get().customPlaylists];
+    set({ customPlaylists: updated });
+    await PlaylistStorage.savePlaylists(updated);
+    return newPlaylist;
+  },
+
+  deletePlaylist: async (playlistId: string) => {
+    const updated = get().customPlaylists.filter((pl) => pl.id !== playlistId);
+    set({ customPlaylists: updated });
+    await PlaylistStorage.savePlaylists(updated);
+  },
+
+  addTrackToPlaylist: async (playlistId: string, trackId: string) => {
+    const updated = get().customPlaylists.map((pl) => {
+      if (pl.id === playlistId) {
+        if (pl.trackIds.includes(trackId)) return pl;
+        return { ...pl, trackIds: [...pl.trackIds, trackId] };
+      }
+      return pl;
+    });
+    set({ customPlaylists: updated });
+    await PlaylistStorage.savePlaylists(updated);
+  },
+
+  removeTrackFromPlaylist: async (playlistId: string, trackId: string) => {
+    const updated = get().customPlaylists.map((pl) => {
+      if (pl.id === playlistId) {
+        return { ...pl, trackIds: pl.trackIds.filter((id) => id !== trackId) };
+      }
+      return pl;
+    });
+    set({ customPlaylists: updated });
+    await PlaylistStorage.savePlaylists(updated);
+  },
+
+  playPlaylist: async (playlist: CustomPlaylist) => {
+    const { tracks, playTrack } = get();
+    const playlistTracks = tracks.filter((t) => playlist.trackIds.includes(t.id));
+    if (playlistTracks.length > 0) {
+      set({ queue: playlistTracks, queueIndex: 0 });
+      await playTrack(playlistTracks[0]);
+    }
   },
 }));
 
