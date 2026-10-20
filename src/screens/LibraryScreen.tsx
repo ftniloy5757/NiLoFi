@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,12 @@ import Header from '../components/Header';
 import CourtesyFooter from '../components/CourtesyFooter';
 import { Track } from '../types';
 
+const formatDuration = (secs: number) => {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
+
 export const LibraryScreen: React.FC = () => {
   const {
     tracks,
@@ -48,26 +54,25 @@ export const LibraryScreen: React.FC = () => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isCreatingInline, setIsCreatingInline] = useState(false);
 
-  const filteredTracks = tracks.filter((track) => {
-    const matchesSearch =
-      track.title.toLowerCase().includes(search.toLowerCase()) ||
-      track.artist.toLowerCase().includes(search.toLowerCase());
+  const filteredTracks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tracks.filter((track) => {
+      const matchesSearch =
+        !q ||
+        track.title.toLowerCase().includes(q) ||
+        track.artist.toLowerCase().includes(q);
 
-    if (!matchesSearch) return false;
+      if (!matchesSearch) return false;
 
-    if (activeFilter === 'favorites') return favorites.includes(track.id);
-    if (activeFilter === 'punjabi') return track.language === 'Punjabi';
-    if (activeFilter === 'bollywood') return track.language === 'Hindi / Bollywood';
-    if (activeFilter === 'lofi') return track.primaryMood === 'Lofi / Rain';
+      if (activeFilter === 'favorites') return favorites.includes(track.id);
+      if (activeFilter === 'punjabi') return track.language === 'Punjabi';
+      if (activeFilter === 'bollywood') return track.language === 'Hindi / Bollywood';
+      if (activeFilter === 'lofi') return track.primaryMood === 'Lofi / Rain';
 
-    return true;
-  });
+      return true;
+    });
+  }, [tracks, search, activeFilter, favorites]);
 
-  const formatDuration = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
 
   const handleCreateAndAdd = async () => {
     if (!newPlaylistName.trim() || !playlistModalTrack) return;
@@ -234,8 +239,13 @@ export const LibraryScreen: React.FC = () => {
         renderItem={renderTrackItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews={true}
         ListFooterComponent={<CourtesyFooter />}
       />
+
 
       {/* Modal: Add to Playlist */}
       <Modal

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -49,7 +49,7 @@ export const SmartAlbumsScreen: React.FC = () => {
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState<CustomPlaylist | null>(null);
 
-  const categories = SmartClassifier.getSmartCategories(tracks);
+  const categories = useMemo(() => SmartClassifier.getSmartCategories(tracks), [tracks]);
 
   const getCategoryIcon = (name: string) => {
     switch (name) {
@@ -236,6 +236,10 @@ export const SmartAlbumsScreen: React.FC = () => {
           renderItem={renderCategoryCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={true}
           ListFooterComponent={<CourtesyFooter />}
         />
       ) : (
@@ -245,9 +249,14 @@ export const SmartAlbumsScreen: React.FC = () => {
           renderItem={renderCustomPlaylistCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={true}
           ListHeaderComponent={
             <TouchableOpacity
               style={styles.createBtnCard}
+
               onPress={() => setIsCreateModalOpen(true)}
             >
               <View style={styles.createIconBox}>
