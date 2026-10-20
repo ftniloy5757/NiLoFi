@@ -7,7 +7,7 @@ The goal is to surpass apps like Poweramp, Musicolet, and Samsung Music by combi
 
 **Core Principles:**
 1. **100% Free-Tier & Zero Cloud Dependency:** No paid APIs, no recurring costs, no subscriptions, and no cloud data storage. All AI recommendations, vector scoring, audio effects, and metadata indexing run strictly on-device.
-2. **Branding & Courtesy:** App name is **NiLoFi**, with `logo.png` as its official identity. Every screen contains the bottom-center courtesy notice: `"© 2026 Farhan T. Niloy"`.
+2. **Branding & Courtesy:** App name is **NiLoFi**, with `assets/logo.png` as its official identity. Every screen contains the bottom-center courtesy notice: `"© 2026 Farhan T. Niloy"`.
 3. **Repository Destination:** Configured for GitHub publication at `https://github.com/ftniloy5757/NiLoFi.git`.
 
 ---
