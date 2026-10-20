@@ -1,0 +1,26 @@
+# Node / Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo
+.expo/
+web-build/
+dist/
+
+# Android generated
+android/app/build/
+android/.gradle/
+*.keystore
+!android/app/debug.keystore
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Environment
+.env
+.env.local
+build-output/

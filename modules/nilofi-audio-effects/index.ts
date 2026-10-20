@@ -1,0 +1,80 @@
+import { requireNativeModule } from 'expo-modules-core';
+
+interface AudioEffectsNative {
+  attachSession(sessionId: number): boolean;
+  setEqualizerBands(gains: number[]): boolean;
+  setBassBoost(strength: number): boolean;
+  setVirtualizer(strength: number): boolean;
+  setLoudnessEnhancer(gainMb: number): boolean;
+  release(): boolean;
+}
+
+let nativeModule: AudioEffectsNative | null = null;
+try {
+  nativeModule = requireNativeModule<AudioEffectsNative>('NiLoFiAudioEffects');
+} catch {
+  // Graceful fallback for non-Android / Expo Go mock environments
+  nativeModule = null;
+}
+
+export const NiLoFiAudioEffects = {
+  isAvailable(): boolean {
+    return nativeModule !== null;
+  },
+
+  attachSession(sessionId: number): boolean {
+    if (!nativeModule) return true;
+    try {
+      return nativeModule.attachSession(sessionId);
+    } catch {
+      return false;
+    }
+  },
+
+  setEqualizerBands(gains: number[]): boolean {
+    if (!nativeModule) return true;
+    try {
+      return nativeModule.setEqualizerBands(gains);
+    } catch {
+      return false;
+    }
+  },
+
+  setBassBoost(strength: number): boolean {
+    if (!nativeModule) return true;
+    try {
+      return nativeModule.setBassBoost(strength);
+    } catch {
+      return false;
+    }
+  },
+
+  setVirtualizer(strength: number): boolean {
+    if (!nativeModule) return true;
+    try {
+      return nativeModule.setVirtualizer(strength);
+    } catch {
+      return false;
+    }
+  },
+
+  setLoudnessEnhancer(gainMb: number): boolean {
+    if (!nativeModule) return true;
+    try {
+      return nativeModule.setLoudnessEnhancer(gainMb);
+    } catch {
+      return false;
+    }
+  },
+
+  release(): boolean {
+    if (!nativeModule) return true;
+    try {
+      return nativeModule.release();
+    } catch {
+      return false;
+    }
+  }
+};
+
+export default NiLoFiAudioEffects;
