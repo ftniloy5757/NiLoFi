@@ -108,7 +108,7 @@ export const SmartAlbumsScreen: React.FC = () => {
             style={styles.playBtn}
             onPress={() => handlePlayCategory(item)}
           >
-            <Play size={16} color="#FFF" fill="#FFF" />
+            <Play size={16} color="#000000" fill="#000000" />
           </TouchableOpacity>
         </View>
 
@@ -152,7 +152,7 @@ export const SmartAlbumsScreen: React.FC = () => {
               style={[styles.playBtn, { marginLeft: 10 }]}
               onPress={() => playPlaylist(item)}
             >
-              <Play size={16} color="#FFF" fill="#FFF" />
+              <Play size={16} color="#000000" fill="#000000" />
             </TouchableOpacity>
           </View>
         </View>
@@ -165,8 +165,8 @@ export const SmartAlbumsScreen: React.FC = () => {
         </View>
 
         <View style={styles.cardFooter}>
-          <View style={[styles.autoTag, { backgroundColor: 'rgba(37, 99, 235, 0.12)' }]}>
-            <Music size={10} color={THEME.colors.primary} />
+          <View style={[styles.autoTag, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
+            <Music size={10} color={THEME.colors.primaryNeon} />
             <Text style={[styles.autoTagText, { color: THEME.colors.primaryNeon }]}>
               MY PLAYLIST
             </Text>
@@ -358,7 +358,7 @@ export const SmartAlbumsScreen: React.FC = () => {
                   }
                 }}
               >
-                <Play size={16} color="#FFF" fill="#FFF" />
+                <Play size={16} color="#000000" fill="#000000" />
                 <Text style={styles.playAllPlaylistText}>Play All</Text>
               </TouchableOpacity>
             )}
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
     marginHorizontal: 16,
     marginTop: 10,
     marginBottom: 6,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   createBtnCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -646,29 +646,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   confirmBtn: {
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
   },
   confirmText: {
-    color: '#FFF',
+    color: '#000000',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   playAllPlaylistBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     borderRadius: 10,
     paddingVertical: 10,
     marginTop: 8,
   },
   playAllPlaylistText: {
-    color: '#FFF',
+    color: '#000000',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     marginLeft: 8,
   },
   emptyBox: {

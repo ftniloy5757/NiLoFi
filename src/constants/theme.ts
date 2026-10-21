@@ -6,13 +6,13 @@ export const THEME = {
     card: '#0B0F17',
     cardElevated: '#111722',
     cardBorder: 'rgba(255, 255, 255, 0.08)',
-    cardBorderHighlight: 'rgba(59, 130, 246, 0.35)',
+    cardBorderHighlight: 'rgba(56, 189, 248, 0.35)',
 
-    // Electric Royal Blue & Neon Accents
-    primary: '#2563EB',
-    primaryGlow: '#3B82F6',
+    // Electric Studio Cyan & Neon Accents (Unified Across All UI Elements)
+    primary: '#38BDF8',
+    primaryGlow: 'rgba(56, 189, 248, 0.45)',
     primaryNeon: '#38BDF8',
-    secondary: '#818CF8',
+    secondary: '#38BDF8',
 
     // Status & Feedback
     success: '#10B981',

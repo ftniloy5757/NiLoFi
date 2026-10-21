@@ -63,9 +63,9 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onPress }) => {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {isPlaying ? (
-              <Pause color={THEME.colors.textPrimary} size={18} fill={THEME.colors.textPrimary} />
+              <Pause color="#000000" size={18} fill="#000000" />
             ) : (
-              <Play color={THEME.colors.textPrimary} size={18} fill={THEME.colors.textPrimary} />
+              <Play color="#000000" size={18} fill="#000000" style={{ marginLeft: 2 }} />
             )}
           </TouchableOpacity>
 
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
   },
   infoBox: {
     flex: 1,
@@ -158,10 +158,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 6,
+    shadowColor: THEME.colors.primaryNeon,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 4,
   },
   skipButton: {
     padding: 6,

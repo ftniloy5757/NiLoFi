@@ -226,9 +226,9 @@ export const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({
           {/* Action 3: Play / Pause Hero Button */}
           <TouchableOpacity onPress={togglePlayPause} style={styles.playHeroBtn}>
             {isPlaying ? (
-              <Pause size={28} color="#FFF" fill="#FFF" />
+              <Pause size={28} color="#000000" fill="#000000" />
             ) : (
-              <Play size={28} color="#FFF" fill="#FFF" style={{ marginLeft: 3 }} />
+              <Play size={28} color="#000000" fill="#000000" style={{ marginLeft: 3 }} />
             )}
           </TouchableOpacity>
 
@@ -457,10 +457,10 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: THEME.colors.primaryGlow,
+    shadowColor: THEME.colors.primaryNeon,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.8,
     shadowRadius: 14,

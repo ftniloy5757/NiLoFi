@@ -241,7 +241,7 @@ export const LibraryScreen: React.FC = () => {
               if (filteredTracks.length > 0) playTrack(filteredTracks[0]);
             }}
           >
-            <Play size={14} color="#FFF" fill="#FFF" />
+            <Play size={14} color="#000000" fill="#000000" />
             <Text style={styles.playAllText}>Play All</Text>
           </TouchableOpacity>
         </View>
@@ -344,7 +344,7 @@ export const LibraryScreen: React.FC = () => {
                         isAdded && styles.activeCheckCircle,
                       ]}
                     >
-                      {isAdded && <Check size={14} color="#FFF" />}
+                      {isAdded && <Check size={14} color="#000000" />}
                     </View>
                   </TouchableOpacity>
                 );
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     borderColor: THEME.colors.cardBorder,
   },
   activeFilterChip: {
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     borderColor: THEME.colors.primaryNeon,
   },
   filterText: {
@@ -431,7 +431,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   activeFilterText: {
-    color: '#FFF',
+    color: '#000000',
+    fontWeight: '800',
   },
   actionHeader: {
     flexDirection: 'row',
@@ -476,10 +477,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
   },
   playAllText: {
-    color: '#FFF',
+    color: '#000000',
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 5,
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   },
   activeTrackCard: {
     borderColor: THEME.colors.primaryNeon,
-    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
   },
   iconBox: {
     width: 40,
@@ -617,7 +618,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeCheckCircle: {
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     borderColor: THEME.colors.primaryNeon,
   },
   inlineCreateBox: {
@@ -636,16 +637,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   inlineSaveBtn: {
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginLeft: 8,
   },
   inlineSaveText: {
-    color: '#FFF',
+    color: '#000000',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   newPlaylistTrigger: {
     flexDirection: 'row',

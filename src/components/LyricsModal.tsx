@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeLineBox: {
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
   },
   lyricText: {
     color: THEME.colors.textMuted,

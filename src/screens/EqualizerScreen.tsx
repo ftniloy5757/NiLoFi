@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     borderColor: THEME.colors.cardBorder,
   },
   activePresetChip: {
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.primaryNeon,
     borderColor: THEME.colors.primaryNeon,
   },
   presetChipText: {
@@ -366,7 +366,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   activePresetChipText: {
-    color: '#FFF',
+    color: '#000000',
+    fontWeight: '800',
   },
   eqCard: {
     backgroundColor: THEME.colors.card,
