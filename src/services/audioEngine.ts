@@ -32,6 +32,7 @@ export class AudioEngine {
 
       await TrackPlayer.updateOptions({
         stoppingAppPausesPlayback: false,
+        progressUpdateEventInterval: 1,
         capabilities: [
           Capability.Play,
           Capability.Pause,
@@ -54,12 +55,57 @@ export class AudioEngine {
         ],
       });
 
+      // Hardware progress event from native ExoPlayer
+      TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (event) => {
+        if (event && typeof event.position === 'number') {
+          const usePlayerStore = require('../store/usePlayerStore').default;
+          usePlayerStore.getState().updatePosition(event.position);
+          if (event.duration && event.duration > 0) {
+            usePlayerStore.setState({ duration: event.duration });
+          }
+        }
+      });
+
+      // Track completion event from native ExoPlayer (when current song finishes in background)
+      TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+        const usePlayerStore = require('../store/usePlayerStore').default;
+        await usePlayerStore.getState().skipToNext();
+      });
+
+      // Playback state event from native ExoPlayer
+      TrackPlayer.addEventListener(Event.PlaybackState, (event) => {
+        const usePlayerStore = require('../store/usePlayerStore').default;
+        if (event.state === State.Playing) {
+          usePlayerStore.setState({ isPlaying: true });
+        } else if (event.state === State.Paused || event.state === State.Stopped) {
+          usePlayerStore.setState({ isPlaying: false });
+        } else if (event.state === State.Ended) {
+          usePlayerStore.getState().skipToNext();
+        }
+      });
+
       // Attach native DSP audio effects module to Android audio session
       NiLoFiAudioEffects.attachSession(0); // 0 attaches to output mix
       this.isInitialized = true;
     } catch {
       // In simulator or Expo Go without prebuild, gracefully mock initialization
       this.isInitialized = true;
+    }
+  }
+
+  public async getProgress() {
+    try {
+      return await TrackPlayer.getProgress();
+    } catch {
+      return null;
+    }
+  }
+
+  public async getPlaybackState() {
+    try {
+      return await TrackPlayer.getPlaybackState();
+    } catch {
+      return null;
     }
   }
 
