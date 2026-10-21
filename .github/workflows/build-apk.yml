@@ -47,16 +47,16 @@ jobs:
             -keypass android \
             -dname "CN=NiLoFi, OU=Audio, O=Farhan T. Niloy, L=Dhaka, C=BD" || true
 
-      - name: 🔨 Build Android APK via Gradle
+            - name: 🔨 Build Standalone Release APK via Gradle
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
       - name: 📦 Prepare Output Artifact
         run: |
           mkdir -p build-output
-          cp android/app/build/outputs/apk/debug/app-debug.apk build-output/NiLoFi-v1.0.0.apk
+          cp android/app/build/outputs/apk/release/app-release.apk build-output/NiLoFi-v1.0.0.apk
 
       - name: 🚀 Upload Installable APK Artifact
         uses: actions/upload-artifact@v4
