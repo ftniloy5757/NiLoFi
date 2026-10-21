@@ -24,6 +24,7 @@ interface PlayerState {
   position: number;
   duration: number;
   isLoading: boolean;
+  isScanning: boolean;
   searchQuery: string;
   customPlaylists: CustomPlaylist[];
 
@@ -41,6 +42,7 @@ interface PlayerState {
 
   // Actions
   initialize: () => Promise<void>;
+  refreshLibrary: () => Promise<void>;
   playTrack: (track: Track) => Promise<void>;
   togglePlayPause: () => Promise<void>;
   skipToNext: () => Promise<void>;
@@ -87,6 +89,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   position: 0,
   duration: initialSeeds[0]?.duration || 0,
   isLoading: false,
+  isScanning: false,
   searchQuery: '',
   customPlaylists: [defaultStarterPlaylist],
 
@@ -100,22 +103,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   sleepTimer: SleepTimerService.getState(),
   favorites: ['seed-1'],
 
+  refreshLibrary: async () => {
+    set({ isScanning: true });
+    try {
+      const scanned = await LibraryScanner.scanDeviceAudio();
+      if (scanned && scanned.length > 0) {
+        const { currentTrack } = get();
+        const exists = currentTrack && scanned.some((t) => t.id === currentTrack.id);
+        const active = exists ? currentTrack : scanned[0];
+        set({
+          tracks: scanned,
+          queue: scanned,
+          currentTrack: active,
+          duration: active ? active.duration : 0,
+        });
+      }
+    } catch (err) {
+      console.warn('Refresh library warning:', err);
+    } finally {
+      set({ isScanning: false });
+    }
+  },
+
   initialize: async () => {
     try {
       await AudioEngine.initialize().catch(() => {});
 
       // Scan device audio
       try {
-        const scanned = await LibraryScanner.scanDeviceAudio();
-        if (scanned && scanned.length > 0) {
-          const first = scanned[0];
-          set({
-            tracks: scanned,
-            queue: scanned,
-            currentTrack: first,
-            duration: first ? first.duration : 0,
-          });
-        }
+        await get().refreshLibrary();
       } catch (scanErr) {
         console.warn('Audio scan warning:', scanErr);
       }

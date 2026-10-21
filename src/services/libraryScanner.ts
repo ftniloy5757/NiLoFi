@@ -1,4 +1,5 @@
 import * as MediaLibrary from 'expo-media-library';
+import { Platform, PermissionsAndroid } from 'react-native';
 import { Track } from '../types';
 import SmartClassifier from './smartClassifier';
 
@@ -109,35 +110,268 @@ export class LibraryScanner {
   }
 
   /**
-   * Fast Tier 1 native media scanner
+   * Request audio reading permissions across all Android API levels (10 through 17)
+   */
+  public static async requestAudioPermissions(): Promise<boolean> {
+    try {
+      if (Platform.OS === 'android') {
+        const androidVersion = typeof Platform.Version === 'number'
+          ? Platform.Version
+          : parseInt(String(Platform.Version), 10);
+
+        if (androidVersion >= 33) {
+          // Android 13+ (API 33, 34, 35, 36, 37) requires READ_MEDIA_AUDIO
+          const hasAudioPermission = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO
+          );
+          if (!hasAudioPermission) {
+            const result = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO
+            );
+            if (result === PermissionsAndroid.RESULTS.GRANTED) {
+              return true;
+            }
+          } else {
+            return true;
+          }
+        } else {
+          // Android 12 and below requires READ_EXTERNAL_STORAGE
+          const hasStorage = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+          );
+          if (!hasStorage) {
+            const result = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+            );
+            if (result === PermissionsAndroid.RESULTS.GRANTED) {
+              return true;
+            }
+          } else {
+            return true;
+          }
+        }
+      }
+
+      // Also verify/request via expo-media-library
+      const perm = await MediaLibrary.getPermissionsAsync(false, ['audio']);
+      if (perm.granted || perm.status === 'granted') {
+        return true;
+      }
+
+      const req = await MediaLibrary.requestPermissionsAsync(false, ['audio']);
+      return req.granted || req.status === 'granted';
+    } catch (err) {
+      console.warn('Audio permission request error:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Filters out ringtones, notification tones, alarms, call recordings, voice notes, and system sounds.
+   * Retains ONLY real songs.
+   */
+  private static isMusicFile(asset: MediaLibrary.Asset): boolean {
+    const filename = (asset.filename || '').toLowerCase().trim();
+    const uri = (asset.uri || '').toLowerCase().trim();
+    const duration = asset.duration || 0;
+
+    // 1. Reject non-music audio formats (e.g. ringtone containers, midi, voice memos)
+    const invalidExtensions = ['.m4r', '.mid', '.midi', '.amr', '.3gp', '.tmp', '.dat', '.bak'];
+    if (invalidExtensions.some((ext) => filename.endsWith(ext) || uri.endsWith(ext))) {
+      return false;
+    }
+
+    // 2. Require standard music file formats
+    const validExtensions = ['.mp3', '.m4a', '.flac', '.wav', '.aac', '.ogg', '.opus', '.wma'];
+    const hasValidExtension = validExtensions.some((ext) => filename.endsWith(ext) || uri.endsWith(ext));
+    if (!hasValidExtension) {
+      return false;
+    }
+
+    // 3. Path-based rejection: strictly reject ringtones, notifications, alarms, and chat audio
+    const blacklistPaths = [
+      '/ringtones/',
+      '/ringtone/',
+      '/notifications/',
+      '/notification/',
+      '/alarms/',
+      '/alarm/',
+      '/system/media/',
+      '/android/media/',
+      '/sounds/',
+      '/system/sounds/',
+      '/ui/',
+      '/whatsapp audio/',
+      '/whatsapp voice notes/',
+      '/com.whatsapp/',
+      '/telegram/telegram audio/',
+      '/callrec/',
+      '/call_rec/',
+      '/call recording/',
+      '/call recordings/',
+      '/callrecordings/',
+      '/sound_recorder/',
+      '/soundrecorder/',
+      '/voicenotes/',
+      '/voice_notes/',
+      '/voice notes/',
+      '/voice recorder/',
+      '/voice_recorder/',
+      '/recordings/call/',
+    ];
+
+    if (blacklistPaths.some((dir) => uri.includes(dir))) {
+      return false;
+    }
+
+    // 4. Filename pattern rejection for messaging voice clips and phone recordings
+    // WhatsApp voice clips: PTT-20240101-WA0001.opus, AUD-20240101-WA0002.mp3
+    if (/^(ptt-|aud-)/i.test(filename)) {
+      return false;
+    }
+
+    // Call recordings and sound memos: call_rec_*, voice_record_*, rec_*
+    if (/^(call_rec|callrec|rec_|recording_|voice_record)/i.test(filename)) {
+      return false;
+    }
+
+    // Explicit tone/alarm indicators in filename
+    const toneKeywords = [
+      'ringtone',
+      'ringtones',
+      'notification',
+      'notifications',
+      'alarm tone',
+      'alert tone',
+      'message tone',
+      'sms tone',
+      'ui_sound',
+      'touch_sound',
+      'hangouts_',
+    ];
+    if (toneKeywords.some((kw) => filename.includes(kw))) {
+      return false;
+    }
+
+    // 5. Minimum duration threshold:
+    // Real songs are almost never under 25 seconds.
+    // Notification chimes (0.5s - 5s) and ringtones (5s - 25s) are eliminated.
+    // If duration is 0 (unindexed metadata on some files), we allow it only if it passed all path & filename checks.
+    if (duration > 0 && duration < 25) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Intelligently parses artist and title from filename
+   * (e.g., "Artist - Title", "01. Song Name", "Heeriye - Arijit Singh")
+   */
+  private static parseTitleAndArtist(rawFilename: string): { title: string; artist: string } {
+    let clean = rawFilename.replace(/\.[^/.]+$/, '');
+
+    // Strip common audio noise suffixes: (Official Audio), [Lyrics], (320kbps), etc.
+    clean = clean.replace(/\s*(\(|\[)(official\s*(audio|video|music\s*video)|lyrics|320\s*kbps|hd|hq|4k|remastered|lyrics\s*video)(\)|\])/gi, '');
+
+    // Strip leading track numbers like "01. ", "02 - ", "1. ", "1 - "
+    clean = clean.replace(/^\s*\d{1,3}[\s.\-_]+/g, '');
+
+    clean = clean.replace(/_/g, ' ').trim();
+
+    // Check for delimiter patterns: "Artist - Title"
+    if (clean.includes(' - ')) {
+      const parts = clean.split(' - ').map((p) => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        return {
+          artist: parts[0],
+          title: parts.slice(1).join(' - '),
+        };
+      }
+    }
+
+    return {
+      title: clean || 'Unknown Track',
+      artist: 'Local Artist',
+    };
+  }
+
+  /**
+   * Fast Tier 1 native media scanner with full pagination and smart music filtering
    */
   public static async scanDeviceAudio(): Promise<Track[]> {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') {
-        // Return demo seed tracks if permission not granted
+      const hasPermission = await this.requestAudioPermissions();
+      if (!hasPermission) {
         return this.getDemoSeedTracks();
       }
 
-      const media = await MediaLibrary.getAssetsAsync({
-        mediaType: MediaLibrary.MediaType.audio,
-        first: 500,
-        sortBy: [MediaLibrary.SortBy.creationTime],
-      });
+      const allAssets: MediaLibrary.Asset[] = [];
+      let hasNextPage = true;
+      let endCursor: string | undefined = undefined;
+      let lastCursor: string | undefined = undefined;
 
-      if (!media.assets || media.assets.length === 0) {
+      // Loop through all pages to fetch all audio files across storage
+      while (hasNextPage) {
+        let page;
+        try {
+          page = await MediaLibrary.getAssetsAsync({
+            mediaType: MediaLibrary.MediaType.audio,
+            first: 100,
+            after: endCursor,
+            sortBy: [MediaLibrary.SortBy.creationTime],
+          });
+        } catch {
+          // Fallback without sortBy if creationTime descriptor is not supported on custom OS
+          page = await MediaLibrary.getAssetsAsync({
+            mediaType: MediaLibrary.MediaType.audio,
+            first: 100,
+            after: endCursor,
+          });
+        }
+
+        if (page.assets && page.assets.length > 0) {
+          allAssets.push(...page.assets);
+        }
+
+        // Break if no more pages or endCursor didn't advance
+        if (!page.hasNextPage || !page.assets || page.assets.length === 0 || page.endCursor === lastCursor) {
+          break;
+        }
+
+        lastCursor = endCursor;
+        endCursor = page.endCursor;
+        hasNextPage = page.hasNextPage;
+
+        // Safety limit to prevent memory exhaustion on giant storages
+        if (allAssets.length >= 15000) {
+          break;
+        }
+      }
+
+      // Filter out ringtones, notifications, alarms, voice notes, and sound effects
+      const filteredAssets = allAssets.filter((asset) => this.isMusicFile(asset));
+
+      if (filteredAssets.length === 0) {
         return this.getDemoSeedTracks();
       }
 
-      const scannedTracks: Track[] = media.assets.map((asset) => {
-        const title = asset.filename.replace(/\.[^/.]+$/, '');
-        const artist = 'Unknown Artist';
-        const album = 'Local Audio';
+      // De-duplicate by URI/ID
+      const seenIds = new Set<string>();
+      const scannedTracks: Track[] = [];
+
+      for (const asset of filteredAssets) {
+        if (seenIds.has(asset.id) || seenIds.has(asset.uri)) continue;
+        seenIds.add(asset.id);
+        seenIds.add(asset.uri);
+
+        const { title, artist } = this.parseTitleAndArtist(asset.filename);
+        const album = 'Local Library';
         const duration = Math.round(asset.duration || 180);
 
         const classification = SmartClassifier.classifyTrack(title, artist, album);
 
-        return {
+        scannedTracks.push({
           id: asset.id,
           url: asset.uri,
           title,
@@ -145,7 +379,7 @@ export class LibraryScanner {
           album,
           genre: 'Local',
           duration,
-          year: new Date(asset.creationTime).getFullYear(),
+          year: new Date(asset.creationTime).getFullYear() || 2024,
           language: classification.language,
           era: classification.era,
           primaryMood: classification.primaryMood,
@@ -153,13 +387,12 @@ export class LibraryScanner {
           playCount: 0,
           skipCount: 0,
           waveformPeaks: LibraryScanner.generateWaveformPeaks(title),
-        };
-      });
+        });
+      }
 
-      // Combine user device tracks with the demo seed tracks
-      return [...scannedTracks, ...this.getDemoSeedTracks()];
-    } catch {
-      // Fallback to seed tracks on error or simulator
+      return scannedTracks.length > 0 ? scannedTracks : this.getDemoSeedTracks();
+    } catch (err) {
+      console.warn('scanDeviceAudio error:', err);
       return this.getDemoSeedTracks();
     }
   }

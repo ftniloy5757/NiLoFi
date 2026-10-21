@@ -18,6 +18,7 @@ import {
   Plus,
   X,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react-native';
 import THEME from '../constants/theme';
 import usePlayerStore from '../store/usePlayerStore';
@@ -46,6 +47,8 @@ export const LibraryScreen: React.FC = () => {
     addTrackToPlaylist,
     removeTrackFromPlaylist,
     createPlaylist,
+    refreshLibrary,
+    isScanning,
   } = usePlayerStore();
 
   const [search, setSearch] = useState('');
@@ -190,9 +193,21 @@ export const LibraryScreen: React.FC = () => {
 
       {/* Action Header */}
       <View style={styles.actionHeader}>
-        <Text style={styles.songCountText}>
-          {filteredTracks.length} {filteredTracks.length === 1 ? 'Song' : 'Songs'}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={styles.songCountText}>
+            {filteredTracks.length} {filteredTracks.length === 1 ? 'Song' : 'Songs'}
+          </Text>
+          <TouchableOpacity
+            onPress={refreshLibrary}
+            style={{ marginLeft: 8, padding: 4 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <RefreshCw
+              size={13}
+              color={isScanning ? THEME.colors.primaryNeon : THEME.colors.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.actionButtons}>
           <TouchableOpacity
@@ -206,8 +221,8 @@ export const LibraryScreen: React.FC = () => {
               size={14}
               color={
                 isAdaptiveShuffle
-                  ? THEME.colors.primaryNeon
-                  : THEME.colors.textSecondary
+                    ? THEME.colors.primaryNeon
+                    : THEME.colors.textSecondary
               }
             />
             <Text
@@ -243,6 +258,25 @@ export const LibraryScreen: React.FC = () => {
         maxToRenderPerBatch={10}
         windowSize={7}
         removeClippedSubviews={true}
+        refreshing={isScanning}
+        onRefresh={refreshLibrary}
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
+            <Music2 size={36} color={THEME.colors.textMuted} style={{ marginBottom: 12, opacity: 0.6 }} />
+            <Text style={{ color: THEME.colors.textSecondary, fontSize: 15, fontWeight: '600', textAlign: 'center', marginBottom: 6 }}>
+              {isScanning
+                ? 'Scanning music from device storage...'
+                : search
+                ? `No songs matching "${search}"`
+                : 'No offline songs found'}
+            </Text>
+            <Text style={{ color: THEME.colors.textMuted, fontSize: 13, textAlign: 'center' }}>
+              {isScanning
+                ? 'Filtering out ringtones & system sounds...'
+                : 'Pull down to refresh or check permissions in Settings.'}
+            </Text>
+          </View>
+        }
         ListFooterComponent={<CourtesyFooter />}
       />
 
