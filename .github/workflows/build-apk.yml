@@ -47,7 +47,7 @@ jobs:
             -keypass android \
             -dname "CN=NiLoFi, OU=Audio, O=Farhan T. Niloy, L=Dhaka, C=BD" || true
 
-            - name: 🔨 Build Standalone Release APK via Gradle
+      - name: 🔨 Build Standalone Release APK via Gradle
         working-directory: android
         run: |
           chmod +x gradlew
