@@ -33,15 +33,13 @@ import SmartClassifier from '../services/smartClassifier';
 import { SmartCategory, CustomPlaylist, Track } from '../types';
 
 export const SmartAlbumsScreen: React.FC = () => {
-  const {
-    tracks,
-    playTrack,
-    customPlaylists,
-    createPlaylist,
-    deletePlaylist,
-    removeTrackFromPlaylist,
-    playPlaylist,
-  } = usePlayerStore();
+  const tracks = usePlayerStore((s) => s.tracks);
+  const playTrack = usePlayerStore((s) => s.playTrack);
+  const customPlaylists = usePlayerStore((s) => s.customPlaylists);
+  const createPlaylist = usePlayerStore((s) => s.createPlaylist);
+  const deletePlaylist = usePlayerStore((s) => s.deletePlaylist);
+  const removeTrackFromPlaylist = usePlayerStore((s) => s.removeTrackFromPlaylist);
+  const playPlaylist = usePlayerStore((s) => s.playPlaylist);
 
   const [activeTab, setActiveTab] = useState<'smart' | 'custom'>('smart');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

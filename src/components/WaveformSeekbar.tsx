@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   PanResponder,
   GestureResponderEvent,
+  LayoutChangeEvent,
+  Dimensions,
 } from 'react-native';
 import THEME from '../constants/theme';
 
@@ -22,33 +24,64 @@ export const WaveformSeekbar: React.FC<WaveformSeekbarProps> = ({
   onSeek,
 }) => {
   const bars = peaks.length === 40 ? peaks : Array.from({ length: 40 }, (_, i) => 0.3 + 0.5 * Math.sin(i * 0.4));
-  const progressRatio = totalDuration > 0 ? Math.min(1, Math.max(0, currentPosition / totalDuration)) : 0;
+  const [containerWidth, setContainerWidth] = useState(Dimensions.get('window').width - 48);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPosition, setDragPosition] = useState(0);
+
+  const stateRef = useRef({ totalDuration, containerWidth, onSeek });
+  stateRef.current = { totalDuration, containerWidth, onSeek };
+
+  const effectivePosition = isDragging ? dragPosition : currentPosition;
+  const progressRatio = totalDuration > 0 ? Math.min(1, Math.max(0, effectivePosition / totalDuration)) : 0;
   const activeBarIndex = Math.floor(progressRatio * 40);
 
   const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
+    const validSecs = Math.max(0, isNaN(secs) ? 0 : secs);
+    const m = Math.floor(validSecs / 60);
+    const s = Math.floor(validSecs % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleTouch = (evt: GestureResponderEvent) => {
+  const calculatePositionFromTouch = (evt: GestureResponderEvent) => {
     const { locationX } = evt.nativeEvent;
-    // Assume component container width is roughly 320 on phones, or measure
-    // Clamping to ratio
-    const touchRatio = Math.max(0, Math.min(1, locationX / 300));
-    const targetSecond = touchRatio * totalDuration;
-    onSeek(targetSecond);
+    const width = Math.max(1, stateRef.current.containerWidth);
+    const touchRatio = Math.max(0, Math.min(1, locationX / width));
+    return touchRatio * stateRef.current.totalDuration;
   };
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: handleTouch,
-    onPanResponderMove: handleTouch,
-  });
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        setIsDragging(true);
+        const pos = calculatePositionFromTouch(evt);
+        setDragPosition(pos);
+      },
+      onPanResponderMove: (evt) => {
+        const pos = calculatePositionFromTouch(evt);
+        setDragPosition(pos);
+      },
+      onPanResponderRelease: (evt) => {
+        const pos = calculatePositionFromTouch(evt);
+        setIsDragging(false);
+        stateRef.current.onSeek(pos);
+      },
+      onPanResponderTerminate: () => {
+        setIsDragging(false);
+      },
+    })
+  ).current;
+
+  const handleLayout = (e: LayoutChangeEvent) => {
+    const { width } = e.nativeEvent.layout;
+    if (width > 0) {
+      setContainerWidth(width);
+    }
+  };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={handleLayout}>
       {/* Waveform Bars */}
       <View style={styles.waveformContainer} {...panResponder.panHandlers}>
         {bars.map((heightFactor, index) => {
@@ -77,7 +110,7 @@ export const WaveformSeekbar: React.FC<WaveformSeekbarProps> = ({
 
       {/* Time Labels */}
       <View style={styles.timeRow}>
-        <Text style={styles.timeText}>{formatTime(currentPosition)}</Text>
+        <Text style={styles.timeText}>{formatTime(effectivePosition)}</Text>
         <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
       </View>
     </View>

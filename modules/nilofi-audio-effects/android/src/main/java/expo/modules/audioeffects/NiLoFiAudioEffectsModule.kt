@@ -28,34 +28,48 @@ class NiLoFiAudioEffectsModule : Module() {
         private val USER_FREQUENCIES = doubleArrayOf(
             31.0, 62.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0
         )
+
+        @Volatile
+        var activeInstance: NiLoFiAudioEffectsModule? = null
+
+        @JvmStatic
+        fun onNewAudioSession(sessionId: Int) {
+            Log.i(TAG, "Static onNewAudioSession received: $sessionId")
+            activeInstance?.attachInternal(sessionId)
+        }
     }
 
     override fun definition() = ModuleDefinition {
         Name("NiLoFiAudioEffects")
 
         Function("attachSession") { sessionId: Int ->
+            activeInstance = this@NiLoFiAudioEffectsModule
             attachInternal(sessionId)
         }
 
         Function("setEqualizerBands") { gains: List<Double> ->
+            activeInstance = this@NiLoFiAudioEffectsModule
             lastGains = gains
             ensureAttached()
             applyGainsInternal(gains)
         }
 
         Function("setBassBoost") { strength: Int ->
+            activeInstance = this@NiLoFiAudioEffectsModule
             lastBassBoost = strength
             ensureAttached()
             applyBassBoostInternal(strength)
         }
 
         Function("setVirtualizer") { strength: Int ->
+            activeInstance = this@NiLoFiAudioEffectsModule
             lastVirtualizer = strength
             ensureAttached()
             applyVirtualizerInternal(strength)
         }
 
         Function("setLoudnessEnhancer") { gainMb: Int ->
+            activeInstance = this@NiLoFiAudioEffectsModule
             lastLoudness = gainMb
             ensureAttached()
             applyLoudnessInternal(gainMb)
@@ -63,6 +77,17 @@ class NiLoFiAudioEffectsModule : Module() {
 
         Function("release") {
             releaseEffects()
+            true
+        }
+
+        Function("exitApp") {
+            try {
+                val activity = appContext.currentActivity
+                activity?.finishAffinity()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed finishing activity: ${e.message}")
+            }
+            android.os.Process.killProcess(android.os.Process.myPid())
             true
         }
     }
@@ -81,16 +106,45 @@ class NiLoFiAudioEffectsModule : Module() {
                 return id
             }
         } catch (e: Exception) {
-            Log.d(TAG, "MusicService reflection check: ${e.message}")
+            Log.d(TAG, "MusicService.sharedAudioSessionId reflection check: ${e.message}")
         }
 
-        // 2. Generate a valid audio session id via system AudioManager
+        // 2. Direct reflection on active MusicService instance and ExoPlayer
+        try {
+            val serviceClass = Class.forName("com.doublesymmetry.trackplayer.service.MusicService")
+            val activeInstField = serviceClass.getDeclaredField("activeInstance")
+            activeInstField.isAccessible = true
+            val service = activeInstField.get(null)
+            if (service != null) {
+                val playerField = serviceClass.getDeclaredField("player")
+                playerField.isAccessible = true
+                val player = playerField.get(service)
+                if (player != null) {
+                    val baseClass = Class.forName("com.doublesymmetry.kotlinaudio.players.BaseAudioPlayer")
+                    val exoMethod = baseClass.getDeclaredMethod("getExoPlayer")
+                    exoMethod.isAccessible = true
+                    val exo = exoMethod.invoke(player)
+                    if (exo != null) {
+                        val getSessionMethod = exo.javaClass.getMethod("getAudioSessionId")
+                        val id = getSessionMethod.invoke(exo) as? Int ?: 0
+                        if (id > 0) {
+                            Log.d(TAG, "Resolved audio session directly from active ExoPlayer: $id")
+                            return id
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Active MusicService ExoPlayer resolution check: ${e.message}")
+        }
+
+        // 3. Fallback: generate a valid audio session id via system AudioManager
         try {
             val context = appContext.reactContext ?: appContext.currentActivity
             val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             val genId = audioManager?.generateAudioSessionId() ?: 0
             if (genId > 0) {
-                Log.d(TAG, "Generated fresh audio session from AudioManager: $genId")
+                Log.d(TAG, "Generated audio session from AudioManager: $genId")
                 return genId
             }
         } catch (e: Exception) {
@@ -106,7 +160,8 @@ class NiLoFiAudioEffectsModule : Module() {
         }
     }
 
-    private fun attachInternal(sessionId: Int): Boolean {
+    fun attachInternal(sessionId: Int): Boolean {
+        activeInstance = this
         val targetSessionId = resolveTargetSessionId(sessionId)
         if (targetSessionId <= 0) {
             Log.w(TAG, "No valid audio session id resolved.")
@@ -126,7 +181,7 @@ class NiLoFiAudioEffectsModule : Module() {
             equalizer = Equalizer(0, targetSessionId).apply {
                 enabled = true
             }
-            Log.i(TAG, "Equalizer initialized successfully with ${equalizer?.numberOfBands} bands")
+            Log.i(TAG, "Equalizer initialized successfully with ${equalizer?.numberOfBands} bands on session $targetSessionId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize Equalizer: ${e.message}")
         }
@@ -138,7 +193,7 @@ class NiLoFiAudioEffectsModule : Module() {
                     enabled = true
                 }
             }
-            Log.i(TAG, "BassBoost initialized successfully")
+            Log.i(TAG, "BassBoost initialized successfully on session $targetSessionId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize BassBoost: ${e.message}")
         }
@@ -150,7 +205,7 @@ class NiLoFiAudioEffectsModule : Module() {
                     enabled = true
                 }
             }
-            Log.i(TAG, "Virtualizer initialized successfully")
+            Log.i(TAG, "Virtualizer initialized successfully on session $targetSessionId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize Virtualizer: ${e.message}")
         }
@@ -160,12 +215,12 @@ class NiLoFiAudioEffectsModule : Module() {
             loudnessEnhancer = LoudnessEnhancer(targetSessionId).apply {
                 enabled = true
             }
-            Log.i(TAG, "LoudnessEnhancer initialized successfully")
+            Log.i(TAG, "LoudnessEnhancer initialized successfully on session $targetSessionId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize LoudnessEnhancer: ${e.message}")
         }
 
-        // Reapply cached settings
+        // Reapply cached settings immediately to the newly attached session
         lastGains?.let { applyGainsInternal(it) }
         applyBassBoostInternal(lastBassBoost)
         applyVirtualizerInternal(lastVirtualizer)

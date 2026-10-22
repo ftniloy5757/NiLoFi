@@ -67,23 +67,21 @@ const FILTER_OPTIONS = [
 ] as const;
 
 export const LibraryScreen: React.FC = () => {
-  const {
-    tracks,
-    currentTrack,
-    isPlaying,
-    playTrack,
-    togglePlayPause,
-    toggleFavorite,
-    favorites,
-    isAdaptiveShuffle,
-    toggleAdaptiveShuffle,
-    customPlaylists,
-    addTrackToPlaylist,
-    removeTrackFromPlaylist,
-    createPlaylist,
-    refreshLibrary,
-    isScanning,
-  } = usePlayerStore();
+  const tracks = usePlayerStore((s) => s.tracks);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const playTrack = usePlayerStore((s) => s.playTrack);
+  const togglePlayPause = usePlayerStore((s) => s.togglePlayPause);
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const favorites = usePlayerStore((s) => s.favorites);
+  const isAdaptiveShuffle = usePlayerStore((s) => s.isAdaptiveShuffle);
+  const toggleAdaptiveShuffle = usePlayerStore((s) => s.toggleAdaptiveShuffle);
+  const customPlaylists = usePlayerStore((s) => s.customPlaylists);
+  const addTrackToPlaylist = usePlayerStore((s) => s.addTrackToPlaylist);
+  const removeTrackFromPlaylist = usePlayerStore((s) => s.removeTrackFromPlaylist);
+  const createPlaylist = usePlayerStore((s) => s.createPlaylist);
+  const refreshLibrary = usePlayerStore((s) => s.refreshLibrary);
+  const isScanning = usePlayerStore((s) => s.isScanning);
 
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('all');

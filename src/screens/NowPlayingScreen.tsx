@@ -24,6 +24,7 @@ import {
   Sparkles,
   Disc,
 } from 'lucide-react-native';
+import { useProgress } from 'react-native-track-player';
 import THEME from '../constants/theme';
 import usePlayerStore from '../store/usePlayerStore';
 import WaveformSeekbar from '../components/WaveformSeekbar';
@@ -42,27 +43,25 @@ export const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({
   visible,
   onClose,
 }) => {
-  const {
-    currentTrack,
-    isPlaying,
-    position,
-    duration,
-    togglePlayPause,
-    skipToNext,
-    skipToPrevious,
-    seekTo,
-    isAdaptiveShuffle,
-    toggleAdaptiveShuffle,
-    isRepeat,
-    toggleRepeat,
-    favorites,
-    toggleFavorite,
-    sessionVector,
-    resetMood,
-    sleepTimer,
-    startSleepTimer,
-    cancelSleepTimer,
-  } = usePlayerStore();
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const togglePlayPause = usePlayerStore((s) => s.togglePlayPause);
+  const skipToNext = usePlayerStore((s) => s.skipToNext);
+  const skipToPrevious = usePlayerStore((s) => s.skipToPrevious);
+  const seekTo = usePlayerStore((s) => s.seekTo);
+  const isAdaptiveShuffle = usePlayerStore((s) => s.isAdaptiveShuffle);
+  const toggleAdaptiveShuffle = usePlayerStore((s) => s.toggleAdaptiveShuffle);
+  const isRepeat = usePlayerStore((s) => s.isRepeat);
+  const toggleRepeat = usePlayerStore((s) => s.toggleRepeat);
+  const favorites = usePlayerStore((s) => s.favorites);
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const sessionVector = usePlayerStore((s) => s.sessionVector);
+  const resetMood = usePlayerStore((s) => s.resetMood);
+  const sleepTimer = usePlayerStore((s) => s.sleepTimer);
+  const startSleepTimer = usePlayerStore((s) => s.startSleepTimer);
+  const cancelSleepTimer = usePlayerStore((s) => s.cancelSleepTimer);
+
+  const { position, duration } = useProgress(250);
 
   const insets = useSafeAreaInsets();
   const [showLyrics, setShowLyrics] = useState(false);
@@ -211,7 +210,7 @@ export const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({
           <WaveformSeekbar
             peaks={currentTrack.waveformPeaks}
             currentPosition={position}
-            totalDuration={duration}
+            totalDuration={duration > 0 ? duration : (currentTrack.duration || 0)}
             onSeek={seekTo}
           />
         </View>

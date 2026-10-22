@@ -1,5 +1,6 @@
 import TrackPlayer, { Event } from 'react-native-track-player';
 import usePlayerStore from './src/store/usePlayerStore';
+import NiLoFiAudioEffects from './modules/nilofi-audio-effects';
 
 export default async function playbackService() {
   TrackPlayer.addEventListener(Event.RemotePlay, () => {
@@ -49,6 +50,7 @@ export default async function playbackService() {
     try {
       await TrackPlayer.reset();
       usePlayerStore.setState({ isPlaying: false });
+      NiLoFiAudioEffects.exitApp();
     } catch {}
   });
 }

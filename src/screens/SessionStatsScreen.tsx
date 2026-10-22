@@ -20,7 +20,8 @@ import Header from '../components/Header';
 import CourtesyFooter from '../components/CourtesyFooter';
 
 export const SessionStatsScreen: React.FC = () => {
-  const { sessionVector, resetMood } = usePlayerStore();
+  const sessionVector = usePlayerStore((s) => s.sessionVector);
+  const resetMood = usePlayerStore((s) => s.resetMood);
 
   const metrics = [
     { name: 'Late Night & Lofi', val: sessionVector.lofi_chill, color: '#38BDF8' },

@@ -108,73 +108,26 @@ function AppContent() {
 }
 
 export default function App() {
-  const { initialize, isPlaying, updatePosition } = usePlayerStore();
+  const initialize = usePlayerStore((s) => s.initialize);
 
   useEffect(() => {
     initialize();
-  }, []);
 
-  // Synchronize playback position & duration with native ExoPlayer / AVPlayer in real-time
-  useEffect(() => {
-    const syncProgressWithNative = async () => {
-      try {
-        const prog = await TrackPlayer.getProgress();
-        if (prog && typeof prog.position === 'number') {
-          updatePosition(prog.position);
-          if (prog.duration && prog.duration > 0) {
-            usePlayerStore.setState({ duration: prog.duration });
-          }
-        }
-        const pbState = await TrackPlayer.getPlaybackState();
-        const active = pbState.state === State.Playing || pbState.state === State.Buffering;
-        usePlayerStore.setState({ isPlaying: active });
-      } catch {}
-    };
-
-    // Immediate sync on mount
-    syncProgressWithNative();
-
-    // 1. Instantly re-sync whenever user returns from background, unlocks phone, or switches back
-    const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+    // Re-sync playback state once whenever user returns from background
+    const appStateSub = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (nextState === 'active') {
-        syncProgressWithNative();
+        try {
+          const pbState = await TrackPlayer.getPlaybackState();
+          const active = pbState.state === State.Playing || pbState.state === State.Buffering;
+          usePlayerStore.setState({ isPlaying: active });
+        } catch {}
       }
     });
 
-    // 2. High-precision 500ms sync loop while actively playing
-    let interval: NodeJS.Timeout | null = null;
-    if (isPlaying) {
-      interval = setInterval(async () => {
-        try {
-          const prog = await TrackPlayer.getProgress();
-          if (prog && typeof prog.position === 'number') {
-            updatePosition(prog.position);
-            if (prog.duration && prog.duration > 0) {
-              usePlayerStore.setState({ duration: prog.duration });
-              // Detect track completion and smoothly advance
-              if (prog.duration > 0 && prog.position >= prog.duration - 0.5) {
-                usePlayerStore.getState().skipToNext();
-              }
-            }
-          }
-        } catch {
-          // Fallback if simulator
-          const cur = usePlayerStore.getState().position;
-          const tot = usePlayerStore.getState().duration;
-          if (tot > 0 && cur >= tot) {
-            usePlayerStore.getState().skipToNext();
-          } else {
-            updatePosition(cur + 1);
-          }
-        }
-      }, 500);
-    }
-
     return () => {
       appStateSub.remove();
-      if (interval) clearInterval(interval);
     };
-  }, [isPlaying]);
+  }, []);
 
   return (
     <SafeAreaProvider>

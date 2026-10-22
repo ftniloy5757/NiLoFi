@@ -35,5 +35,9 @@ public final class NiLoFiAudioEffectsModule: Module {
     Function("release") { () -> Bool in
       return true
     }
+
+    Function("exitApp") { () -> Bool in
+      exit(0)
+    }
   }
 }

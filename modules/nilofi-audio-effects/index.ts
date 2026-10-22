@@ -7,6 +7,7 @@ interface AudioEffectsNative {
   setVirtualizer(strength: number): boolean;
   setLoudnessEnhancer(gainMb: number): boolean;
   release(): boolean;
+  exitApp?(): boolean;
 }
 
 let nativeModule: AudioEffectsNative | null = null;
@@ -71,6 +72,15 @@ export const NiLoFiAudioEffects = {
     if (!nativeModule) return true;
     try {
       return nativeModule.release();
+    } catch {
+      return false;
+    }
+  },
+
+  exitApp(): boolean {
+    if (!nativeModule || !nativeModule.exitApp) return true;
+    try {
+      return nativeModule.exitApp();
     } catch {
       return false;
     }

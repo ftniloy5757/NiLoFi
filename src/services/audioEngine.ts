@@ -109,52 +109,24 @@ export class AudioEngine {
     }
   }
 
-  /**
-   * 150ms Volume Ramp on Play/Pause/Seek to eliminate hardware pop/click noises
-   */
-  public async playWithMicroFade(): Promise<void> {
+  public async play(): Promise<void> {
     try {
-      await TrackPlayer.setVolume(0.0);
       await TrackPlayer.play();
-      
-      // Micro-fade ramp up (150ms)
-      const steps = 5;
-      const stepDuration = 30; // 30ms * 5 = 150ms
-      for (let i = 1; i <= steps; i++) {
-        setTimeout(async () => {
-          try {
-            await TrackPlayer.setVolume((i / steps) * this.currentVolume);
-          } catch {}
-        }, i * stepDuration);
-      }
-    } catch {
-      try {
-        await TrackPlayer.play();
-      } catch {}
-    }
+    } catch {}
+  }
+
+  public async pause(): Promise<void> {
+    try {
+      await TrackPlayer.pause();
+    } catch {}
+  }
+
+  public async playWithMicroFade(): Promise<void> {
+    await this.play();
   }
 
   public async pauseWithMicroFade(): Promise<void> {
-    try {
-      // Micro-fade ramp down (150ms)
-      const steps = 5;
-      const stepDuration = 30;
-      for (let i = steps - 1; i >= 0; i--) {
-        setTimeout(async () => {
-          try {
-            await TrackPlayer.setVolume((i / steps) * this.currentVolume);
-            if (i === 0) {
-              await TrackPlayer.pause();
-              await TrackPlayer.setVolume(this.currentVolume);
-            }
-          } catch {}
-        }, (steps - i) * stepDuration);
-      }
-    } catch {
-      try {
-        await TrackPlayer.pause();
-      } catch {}
-    }
+    await this.pause();
   }
 
   public async setTrack(track: Track): Promise<void> {
@@ -170,7 +142,7 @@ export class AudioEngine {
 
       await TrackPlayer.reset();
       await TrackPlayer.add([tpTrack]);
-      await this.playWithMicroFade();
+      await this.play();
       DSPEngine.reapplyCurrentPreset();
     } catch {}
   }

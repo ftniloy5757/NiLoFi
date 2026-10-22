@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Play, Pause, SkipForward, Disc } from 'lucide-react-native';
+import { useProgress } from 'react-native-track-player';
 import THEME from '../constants/theme';
 import usePlayerStore from '../store/usePlayerStore';
 
@@ -18,12 +19,17 @@ interface MiniPlayerProps {
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onPress }) => {
   const insets = useSafeAreaInsets();
-  const { currentTrack, isPlaying, togglePlayPause, skipToNext, position, duration } =
-    usePlayerStore();
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const togglePlayPause = usePlayerStore((s) => s.togglePlayPause);
+  const skipToNext = usePlayerStore((s) => s.skipToNext);
+
+  const { position, duration } = useProgress(250);
 
   if (!currentTrack) return null;
 
-  const progressRatio = duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0;
+  const effectiveDuration = duration > 0 ? duration : (currentTrack.duration || 0);
+  const progressRatio = effectiveDuration > 0 ? Math.min(1, Math.max(0, position / effectiveDuration)) : 0;
   const bottomPosition = Platform.OS === 'ios' && insets.bottom > 0 ? insets.bottom + 58 : 58;
 
   return (

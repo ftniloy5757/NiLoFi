@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTimer,
   onToggleSearch,
 }) => {
-  const { sleepTimer } = usePlayerStore();
+  const sleepTimer = usePlayerStore((s) => s.sleepTimer);
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'android'
     ? (StatusBar.currentHeight || 40) + 10

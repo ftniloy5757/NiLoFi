@@ -217,10 +217,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     if (isPlaying) {
       set({ isPlaying: false });
-      await AudioEngine.pauseWithMicroFade();
+      await AudioEngine.pause();
     } else {
       set({ isPlaying: true });
-      await AudioEngine.playWithMicroFade();
+      await AudioEngine.play();
     }
   },
 
@@ -239,7 +239,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     if (isRepeat && currentTrack) {
       await get().seekTo(0);
-      await AudioEngine.playWithMicroFade();
+      await AudioEngine.play();
       return;
     }
 

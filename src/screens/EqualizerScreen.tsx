@@ -23,16 +23,14 @@ import CourtesyFooter from '../components/CourtesyFooter';
 import DSPEngine, { EQ_FREQUENCIES, BUILT_IN_PRESETS } from '../services/dspEngine';
 
 export const EqualizerScreen: React.FC = () => {
-  const {
-    activePreset,
-    selectEQPreset,
-    setEQBand,
-    setBassBoost,
-    setVirtualizer,
-    isEQEnabled,
-    toggleEQ,
-    activeRoute,
-  } = usePlayerStore();
+  const activePreset = usePlayerStore((s) => s.activePreset);
+  const selectEQPreset = usePlayerStore((s) => s.selectEQPreset);
+  const setEQBand = usePlayerStore((s) => s.setEQBand);
+  const setBassBoost = usePlayerStore((s) => s.setBassBoost);
+  const setVirtualizer = usePlayerStore((s) => s.setVirtualizer);
+  const isEQEnabled = usePlayerStore((s) => s.isEQEnabled);
+  const toggleEQ = usePlayerStore((s) => s.toggleEQ);
+  const activeRoute = usePlayerStore((s) => s.activeRoute);
 
   const preAmpGain = DSPEngine.calculatePreAmpAutoGain(activePreset.gains);
 
