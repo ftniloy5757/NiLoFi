@@ -5,7 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Play, Pause, SkipForward, Disc } from 'lucide-react-native';
 import THEME from '../constants/theme';
 import usePlayerStore from '../store/usePlayerStore';
@@ -15,15 +17,17 @@ interface MiniPlayerProps {
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onPress }) => {
+  const insets = useSafeAreaInsets();
   const { currentTrack, isPlaying, togglePlayPause, skipToNext, position, duration } =
     usePlayerStore();
 
   if (!currentTrack) return null;
 
   const progressRatio = duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0;
+  const bottomPosition = Platform.OS === 'ios' && insets.bottom > 0 ? insets.bottom + 58 : 58;
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { bottom: bottomPosition }]}>
       {/* 2px Neon Progress Line */}
       <View style={styles.progressBarBackground}>
         <View style={[styles.progressBarFill, { width: `${progressRatio * 100}%` }]} />

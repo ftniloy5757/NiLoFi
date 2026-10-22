@@ -9,8 +9,9 @@ yarn-error.log*
 web-build/
 dist/
 
-# Android generated
-android/
+# Native generated
+/android/
+/ios/
 **/build/
 android/.gradle/
 *.keystore

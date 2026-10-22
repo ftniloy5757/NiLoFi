@@ -1,7 +1,10 @@
 {
   "name": "nilofi-audio-effects",
-  "platforms": ["android"],
+  "platforms": ["android", "ios"],
   "android": {
     "modules": ["expo.modules.audioeffects.NiLoFiAudioEffectsModule"]
+  },
+  "ios": {
+    "modules": ["NiLoFiAudioEffectsModule"]
   }
 }

@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Moon, Search } from 'lucide-react-native';
 import THEME from '../constants/theme';
 import usePlayerStore from '../store/usePlayerStore';
-
-const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight || 40) : 0;
 
 interface HeaderProps {
   title?: string;
@@ -18,9 +17,13 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSearch,
 }) => {
   const { sleepTimer } = usePlayerStore();
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'android'
+    ? (StatusBar.currentHeight || 40) + 10
+    : Math.max(insets.top, 20) + 6;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: topPadding }]}>
       <View style={styles.brandRow}>
         <Image
           source={require('../../assets/logo.png')}
@@ -69,7 +72,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: STATUS_BAR_HEIGHT + 10,
     paddingBottom: 12,
     backgroundColor: THEME.colors.background,
     borderBottomWidth: 1,

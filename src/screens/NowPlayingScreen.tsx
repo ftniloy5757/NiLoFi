@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronDown,
   Play,
@@ -62,12 +64,20 @@ export const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({
     cancelSleepTimer,
   } = usePlayerStore();
 
+  const insets = useSafeAreaInsets();
   const [showLyrics, setShowLyrics] = useState(false);
   const [showTimerPicker, setShowTimerPicker] = useState(false);
 
   if (!currentTrack) return null;
 
   const isFav = favorites.includes(currentTrack.id);
+
+  const containerPaddingTop = Platform.OS === 'ios'
+    ? Math.max(insets.top, 24) + 8
+    : 44;
+  const containerPaddingBottom = Platform.OS === 'ios'
+    ? Math.max(insets.bottom, 16) + 4
+    : 16;
 
   return (
     <Modal
@@ -76,7 +86,15 @@ export const NowPlayingScreen: React.FC<NowPlayingScreenProps> = ({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: containerPaddingTop,
+            paddingBottom: containerPaddingBottom,
+          },
+        ]}
+      >
         {/* Top Header */}
         <View style={styles.topHeader}>
           <TouchableOpacity onPress={onClose} style={styles.headerBtn}>

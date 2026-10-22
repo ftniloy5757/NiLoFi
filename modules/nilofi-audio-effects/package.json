@@ -1,7 +1,7 @@
 {
   "name": "nilofi-audio-effects",
   "version": "1.0.0",
-  "description": "Native Android AudioEffects module for NiLoFi",
+  "description": "Native AudioEffects module for NiLoFi (Android & iOS)",
   "main": "index.ts",
   "types": "index.ts"
 }
