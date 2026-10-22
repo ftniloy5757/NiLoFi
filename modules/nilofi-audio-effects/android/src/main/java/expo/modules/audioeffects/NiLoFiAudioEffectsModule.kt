@@ -22,6 +22,8 @@ class NiLoFiAudioEffectsModule : Module() {
     private var lastBassBoost: Int = 0
     private var lastVirtualizer: Int = 0
     private var lastLoudness: Int = 0
+    private var isDolbyAtmosActive: Boolean = false
+    private var dolbyAtmosStrength: Int = 850
 
     companion object {
         private const val TAG = "NiLoFiAudioEffects"
@@ -76,6 +78,20 @@ class NiLoFiAudioEffectsModule : Module() {
             lastLoudness = gainMb
             ensureAttached()
             applyLoudnessInternal(gainMb)
+        }
+
+        Function("setDolbyAtmos") { enabled: Boolean, strength: Int ->
+            activeInstance = this@NiLoFiAudioEffectsModule
+            ensureAttached()
+            applyDolbyAtmosInternal(enabled, strength)
+        }
+
+        Function("getAudioEffectsCapabilities") {
+            mapOf(
+                "hasDolbyHardware" to detectDolbyHardware(),
+                "hasSpatializer" to detectSpatializer(),
+                "bandsCount" to (equalizer?.numberOfBands?.toInt() ?: 10)
+            )
         }
 
         Function("release") {
@@ -226,7 +242,11 @@ class NiLoFiAudioEffectsModule : Module() {
         // Reapply cached settings immediately with full amplified power
         lastGains?.let { applyGainsInternal(it) }
         applyBassBoostInternal(lastBassBoost)
-        applyVirtualizerInternal(lastVirtualizer)
+        if (isDolbyAtmosActive) {
+            applyDolbyAtmosInternal(true, dolbyAtmosStrength)
+        } else {
+            applyVirtualizerInternal(lastVirtualizer)
+        }
         applyLoudnessInternal(lastLoudness)
 
         return equalizer != null || bassBoost != null
@@ -332,6 +352,61 @@ class NiLoFiAudioEffectsModule : Module() {
             true
         } catch (e: Exception) {
             Log.e(TAG, "applyLoudnessInternal error: ${e.message}")
+            false
+        }
+    }
+
+    private fun applyDolbyAtmosInternal(enabled: Boolean, strength: Int): Boolean {
+        isDolbyAtmosActive = enabled
+        dolbyAtmosStrength = strength
+        val virt = virtualizer ?: return false
+        return try {
+            if (enabled) {
+                virt.enabled = true
+                if (virt.strengthSupported) {
+                    virt.setStrength(strength.coerceIn(0, 1000).toShort())
+                }
+                try {
+                    val forceModeMethod = virt.javaClass.getMethod("forceVirtualizationMode", Int::class.javaPrimitiveType)
+                    forceModeMethod.invoke(virt, 1) // Virtualizer.VIRTUALIZATION_MODE_AUTO
+                } catch (_: Exception) {}
+            } else {
+                applyVirtualizerInternal(lastVirtualizer)
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "applyDolbyAtmosInternal error: ${e.message}")
+            false
+        }
+    }
+
+    private fun detectDolbyHardware(): Boolean {
+        return try {
+            val descriptors = android.media.audiofx.AudioEffect.queryEffects() ?: return false
+            descriptors.any { desc ->
+                val name = desc.name?.lowercase() ?: ""
+                val implementor = desc.implementor?.lowercase() ?: ""
+                name.contains("dolby") || implementor.contains("dolby") || name.contains("dap") || name.contains("atmos")
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun detectSpatializer(): Boolean {
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                val context = appContext.reactContext ?: appContext.currentActivity
+                val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                val spatializerMethod = audioManager?.javaClass?.getMethod("getSpatializer")
+                val spatializer = spatializerMethod?.invoke(audioManager)
+                if (spatializer != null) {
+                    val isAvailableMethod = spatializer.javaClass.getMethod("isAvailable")
+                    return isAvailableMethod.invoke(spatializer) as? Boolean ?: false
+                }
+            }
+            false
+        } catch (_: Exception) {
             false
         }
     }

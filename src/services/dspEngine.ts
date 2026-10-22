@@ -16,56 +16,89 @@ export const EQ_FREQUENCIES = [
 
 export const BUILT_IN_PRESETS: EqualizerPreset[] = [
   {
-    id: 'punchy_bass',
-    name: 'Bass Boost',
-    gains: [8, 7, 5, 2, 0, 0, 1, 2, 3, 3],
-    bassBoost: 650,
-    virtualizer: 150,
+    id: 'dolby_standard',
+    name: 'Standard',
+    subtitle: 'Dolby On signature curve',
+    description: 'Dolby On signature curve: Balanced dynamics, crystal clarity, and expanded spatial depth.',
+    isDolbyStyle: true,
+    pattern: 'standard',
+    colors: ['#4C1D95', '#EA580C'],
+    gains: [6, 5, 2, 0, 0, 1, 3, 4, 4, 3],
+    bassBoost: 450,
+    virtualizer: 300,
     loudnessGain: 400,
   },
   {
-    id: 'punjabi_dhol',
-    name: 'Party & Dhol Beats',
-    gains: [9, 8, 6, 2, 0, 1, 3, 4, 4, 3],
+    id: 'dolby_natural',
+    name: 'Natural',
+    subtitle: 'True-to-life studio balance',
+    description: 'True acoustic realism: Flat studio accuracy with pristine dynamic transparency.',
+    isDolbyStyle: true,
+    pattern: 'natural',
+    colors: ['#BE185D', '#E11D48'],
+    gains: [2, 1, 0, 0, 0, 1, 1, 2, 2, 1],
+    bassBoost: 150,
+    virtualizer: 200,
+    loudnessGain: 250,
+  },
+  {
+    id: 'dolby_thump',
+    name: 'Thump',
+    subtitle: 'Club & sub-bass punch',
+    description: 'Sub-bass resonance: Heavy club punch and driving low-end impact.',
+    isDolbyStyle: true,
+    pattern: 'thump',
+    colors: ['#D97706', '#CA8A04'],
+    gains: [9, 8, 5, 2, 0, 0, 2, 3, 4, 3],
     bassBoost: 800,
     virtualizer: 250,
-    loudnessGain: 550,
+    loudnessGain: 500,
   },
   {
-    id: 'vocal_clarity',
-    name: 'Vocal Clarity',
-    gains: [-2, -1, 0, 2, 4, 5, 4, 3, 2, 1],
+    id: 'dolby_amped',
+    name: 'Amped',
+    subtitle: 'Maximum projection & volume',
+    description: 'High-gain loudness: Maximum projection, boosted attack, and room-filling volume.',
+    isDolbyStyle: true,
+    pattern: 'amped',
+    colors: ['#DC2626', '#EA580C'],
+    gains: [6, 6, 4, 3, 4, 5, 5, 6, 7, 6],
+    bassBoost: 550,
+    virtualizer: 400,
+    loudnessGain: 750,
+  },
+  {
+    id: 'dolby_lyric',
+    name: 'Lyric',
+    subtitle: 'Vocal & lyric clarity',
+    description: 'Vocal clarity: Forward mid-range with crisp acoustic definition and vocal presence.',
+    isDolbyStyle: true,
+    pattern: 'lyric',
+    colors: ['#9D174D', '#C026D3'],
+    gains: [-2, -1, 0, 2, 5, 6, 5, 3, 2, 1],
     bassBoost: 100,
-    virtualizer: 200,
-    loudnessGain: 350,
-  },
-  {
-    id: 'electronic_edm',
-    name: 'Dance & Electronic',
-    gains: [7, 6, 3, 0, -1, 2, 4, 6, 6, 5],
-    bassBoost: 600,
-    virtualizer: 350,
-    loudnessGain: 450,
-  },
-  {
-    id: 'treble_sparkle',
-    name: 'Bright & Crisp',
-    gains: [-2, -1, 0, 1, 2, 3, 5, 7, 8, 8],
-    bassBoost: 50,
     virtualizer: 250,
     loudnessGain: 350,
   },
   {
-    id: 'late_night',
-    name: 'Warm & Relaxing',
-    gains: [5, 4, 3, 2, 1, 0, 0, -1, -2, -3],
-    bassBoost: 300,
-    virtualizer: 100,
-    loudnessGain: 200,
+    id: 'dolby_deep',
+    name: 'Deep',
+    subtitle: 'Sub-bass immersion',
+    description: 'Sub-bass immersion: Atmospheric warmth, deep sub-bass, and cinematic field.',
+    isDolbyStyle: true,
+    pattern: 'deep',
+    colors: ['#9F1239', '#881337'],
+    gains: [8, 7, 4, 1, 0, 0, 1, 2, 2, 1],
+    bassBoost: 650,
+    virtualizer: 400,
+    loudnessGain: 350,
   },
   {
     id: 'flat',
-    name: 'Natural (Original)',
+    name: 'Pure Flat',
+    subtitle: 'Studio direct reference',
+    description: 'Pure Flat: Unaltered 0dB reference response across all 10 frequency bands.',
+    isDolbyStyle: false,
     gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     bassBoost: 0,
     virtualizer: 0,
@@ -81,10 +114,10 @@ export class DSPEngine {
   private isEnabled: boolean = true;
 
   private constructor() {
-    this.routePresets.set('Speaker', 'punchy_bass');
-    this.routePresets.set('Bluetooth', 'punchy_bass');
-    this.routePresets.set('Car', 'punjabi_dhol');
-    this.routePresets.set('Wired', 'vocal_clarity');
+    this.routePresets.set('Speaker', 'dolby_amped');
+    this.routePresets.set('Bluetooth', 'dolby_standard');
+    this.routePresets.set('Car', 'dolby_thump');
+    this.routePresets.set('Wired', 'dolby_natural');
   }
 
   public static getInstance(): DSPEngine {
@@ -92,6 +125,14 @@ export class DSPEngine {
       DSPEngine.instance = new DSPEngine();
     }
     return DSPEngine.instance;
+  }
+
+  public setDolbyAtmos(enabled: boolean, strength: number = 850): void {
+    NiLoFiAudioEffects.setDolbyAtmos(enabled, strength);
+  }
+
+  public getCapabilities() {
+    return NiLoFiAudioEffects.getCapabilities();
   }
 
   public calculatePreAmpAutoGain(gains: number[]): number {

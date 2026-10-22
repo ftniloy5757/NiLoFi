@@ -1,11 +1,19 @@
 import { requireNativeModule } from 'expo-modules-core';
 
+export interface AudioEffectsCapabilities {
+  hasDolbyHardware: boolean;
+  hasSpatializer: boolean;
+  bandsCount: number;
+}
+
 interface AudioEffectsNative {
   attachSession(sessionId: number): boolean;
   setEqualizerBands(gains: number[]): boolean;
   setBassBoost(strength: number): boolean;
   setVirtualizer(strength: number): boolean;
   setLoudnessEnhancer(gainMb: number): boolean;
+  setDolbyAtmos?(enabled: boolean, strength: number): boolean;
+  getAudioEffectsCapabilities?(): AudioEffectsCapabilities;
   release(): boolean;
   exitApp?(): boolean;
 }
@@ -65,6 +73,26 @@ export const NiLoFiAudioEffects = {
       return nativeModule.setLoudnessEnhancer(gainMb);
     } catch {
       return false;
+    }
+  },
+
+  setDolbyAtmos(enabled: boolean, strength: number = 850): boolean {
+    if (!nativeModule || !nativeModule.setDolbyAtmos) return true;
+    try {
+      return nativeModule.setDolbyAtmos(enabled, strength);
+    } catch {
+      return false;
+    }
+  },
+
+  getCapabilities(): AudioEffectsCapabilities {
+    if (!nativeModule || !nativeModule.getAudioEffectsCapabilities) {
+      return { hasDolbyHardware: false, hasSpatializer: false, bandsCount: 10 };
+    }
+    try {
+      return nativeModule.getAudioEffectsCapabilities();
+    } catch {
+      return { hasDolbyHardware: false, hasSpatializer: false, bandsCount: 10 };
     }
   },
 

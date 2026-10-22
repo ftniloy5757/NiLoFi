@@ -61,6 +61,11 @@ export interface SessionPreferenceVector {
 export interface EqualizerPreset {
   id: string;
   name: string;
+  subtitle?: string;
+  description?: string;
+  isDolbyStyle?: boolean;
+  colors?: [string, string];
+  pattern?: 'standard' | 'natural' | 'thump' | 'amped' | 'lyric' | 'deep';
   isCustom?: boolean;
   gains: number[]; // 10 bands in dB (-12 to +12)
   bassBoost: number; // 0 to 1000

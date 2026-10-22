@@ -14,6 +14,8 @@ export interface UserSettings {
   favorites?: string[];
   isAdaptiveShuffle?: boolean;
   isRepeat?: boolean;
+  isDolbyAtmosEnabled?: boolean;
+  dolbyAtmosStrength?: number;
 }
 
 const SETTINGS_FILE = `${FileSystem.documentDirectory || ''}nilofi_user_settings.json`;

@@ -41,6 +41,8 @@ interface PlayerState {
   activePreset: EqualizerPreset;
   activeRoute: AudioOutputRoute;
   isEQEnabled: boolean;
+  isDolbyAtmosEnabled: boolean;
+  dolbyAtmosStrength: number;
   sleepTimer: SleepTimerState;
   favorites: string[];
 
@@ -63,6 +65,8 @@ interface PlayerState {
   setBassBoost: (strength: number) => void;
   setVirtualizer: (strength: number) => void;
   toggleEQ: () => void;
+  toggleDolbyAtmos: () => void;
+  setDolbyAtmosStrength: (strength: number) => void;
   startSleepTimer: (minutes: number) => void;
   cancelSleepTimer: () => void;
   setSearchQuery: (query: string) => void;
@@ -110,6 +114,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   activePreset: BUILT_IN_PRESETS[0],
   activeRoute: 'Speaker',
   isEQEnabled: true,
+  isDolbyAtmosEnabled: true,
+  dolbyAtmosStrength: 850,
   sleepTimer: SleepTimerService.getState(),
   favorites: ['seed-1'],
 
@@ -206,12 +212,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       }
 
       const isEQEnabled = savedSettings.isEQEnabled ?? true;
+      const isDolbyAtmosEnabled = savedSettings.isDolbyAtmosEnabled ?? true;
+      const dolbyAtmosStrength = savedSettings.dolbyAtmosStrength ?? 850;
       DSPEngine.applyPreset(restoredPreset);
       DSPEngine.toggleEQ(isEQEnabled);
+      DSPEngine.setDolbyAtmos(isDolbyAtmosEnabled, dolbyAtmosStrength);
 
       set({
         activePreset: restoredPreset,
         isEQEnabled,
+        isDolbyAtmosEnabled,
+        dolbyAtmosStrength,
         favorites: savedSettings.favorites || ['seed-1'],
         isAdaptiveShuffle: savedSettings.isAdaptiveShuffle ?? true,
         isRepeat: savedSettings.isRepeat ?? false,
@@ -514,6 +525,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     DSPEngine.toggleEQ(nextVal);
     set({ isEQEnabled: nextVal });
     SettingsStorage.saveSettings({ isEQEnabled: nextVal });
+  },
+
+  toggleDolbyAtmos: () => {
+    const nextVal = !get().isDolbyAtmosEnabled;
+    const strength = get().dolbyAtmosStrength;
+    DSPEngine.setDolbyAtmos(nextVal, strength);
+    set({ isDolbyAtmosEnabled: nextVal });
+    SettingsStorage.saveSettings({ isDolbyAtmosEnabled: nextVal });
+  },
+
+  setDolbyAtmosStrength: (strength: number) => {
+    const clamped = Math.max(0, Math.min(1000, strength));
+    DSPEngine.setDolbyAtmos(get().isDolbyAtmosEnabled, clamped);
+    set({ dolbyAtmosStrength: clamped });
+    SettingsStorage.saveSettings({ dolbyAtmosStrength: clamped });
   },
 
   startSleepTimer: (minutes: number) => {
