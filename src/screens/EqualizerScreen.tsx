@@ -82,22 +82,15 @@ export const EqualizerScreen: React.FC = () => {
         <View style={styles.limiterCard}>
           <View style={styles.limiterHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ShieldCheck size={18} color={THEME.colors.success} />
-              <Text style={styles.limiterTitle}>Studio Anti-Clipping Guard</Text>
+              <ShieldCheck size={18} color={THEME.colors.primaryNeon} />
+              <Text style={styles.limiterTitle}>Hardware Speaker Amplifier</Text>
             </View>
-            <Text
-              style={[
-                styles.preAmpValue,
-                preAmpGain < 0 ? { color: THEME.colors.warning } : { color: THEME.colors.success },
-              ]}
-            >
-              {preAmpGain < 0 ? `Auto Headroom: ${preAmpGain} dB` : 'Headroom: Full (0 dB)'}
+            <Text style={[styles.preAmpValue, { color: THEME.colors.primaryNeon }]}>
+              Pixel Boost: Active (+3.5 dB)
             </Text>
           </View>
           <Text style={styles.limiterDesc}>
-            {preAmpGain < 0
-              ? `Poweramp-grade soft limiter active. Automatically balances ${preAmpGain} dB headroom to prevent harsh digital clipping and keep sub-bass punchy.`
-              : 'Audiophile dynamic range active with pristine uncompressed headroom.'}
+            Dynamic volume enhancer active. Amplifies audio output to deliver full, room-filling sound on phone speakers and rich punch on headphones.
           </Text>
         </View>
 

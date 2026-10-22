@@ -82,21 +82,12 @@ if (content.includes('notificationDismissReceiver')) {
   );
 }
 
-// 3. onDestroy: Clean up receiver, activeInstance and broadcast effect session close
+// 3. onDestroy: Clean up receiver and activeInstance
 const onDestroyHook = `    @MainThread
     override fun onDestroy() {
         try {
             unregisterReceiver(notificationDismissReceiver)
         } catch (_: Exception) {}
-        if (sharedAudioSessionId > 0) {
-            try {
-                val closeIntent = Intent(android.media.audiofx.AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                    putExtra(android.media.audiofx.AudioEffect.EXTRA_AUDIO_SESSION, sharedAudioSessionId)
-                    putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-                }
-                sendBroadcast(closeIntent)
-            } catch (_: Exception) {}
-        }
         if (activeInstance === this) {
             activeInstance = null
         }
@@ -133,14 +124,6 @@ const setupPlayerReplacement = `player = QueuedAudioPlayer(this@MusicService, pl
                             sharedAudioSessionId = audioSessionId
                             Timber.d("NiLoFi: onAudioSessionIdChanged: %s", audioSessionId)
                             try {
-                                val openIntent = Intent(android.media.audiofx.AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                                    putExtra(android.media.audiofx.AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
-                                    putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-                                    putExtra(android.media.audiofx.AudioEffect.EXTRA_CONTENT_TYPE, android.media.audiofx.AudioEffect.CONTENT_TYPE_MUSIC)
-                                }
-                                sendBroadcast(openIntent)
-                            } catch (_: Throwable) {}
-                            try {
                                 val effectsModuleClass = Class.forName("expo.modules.audioeffects.NiLoFiAudioEffectsModule")
                                 val onSessionMethod = effectsModuleClass.getDeclaredMethod("onNewAudioSession", Int::class.javaPrimitiveType)
                                 onSessionMethod.invoke(null, audioSessionId)
@@ -151,16 +134,6 @@ const setupPlayerReplacement = `player = QueuedAudioPlayer(this@MusicService, pl
                     }
                 })
                 Timber.d("NiLoFi: Initialized ExoPlayer with audioSessionId=%s", sharedAudioSessionId)
-                if (sharedAudioSessionId > 0) {
-                    try {
-                        val openIntent = Intent(android.media.audiofx.AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                            putExtra(android.media.audiofx.AudioEffect.EXTRA_AUDIO_SESSION, sharedAudioSessionId)
-                            putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-                            putExtra(android.media.audiofx.AudioEffect.EXTRA_CONTENT_TYPE, android.media.audiofx.AudioEffect.CONTENT_TYPE_MUSIC)
-                        }
-                        sendBroadcast(openIntent)
-                    } catch (_: Throwable) {}
-                }
                 try {
                     val effectsModuleClass = Class.forName("expo.modules.audioeffects.NiLoFiAudioEffectsModule")
                     val onSessionMethod = effectsModuleClass.getDeclaredMethod("onNewAudioSession", Int::class.javaPrimitiveType)
