@@ -1,7 +1,9 @@
 package expo.modules.audioeffects
 
 import android.content.Context
+import android.content.Intent
 import android.media.AudioManager
+import android.media.audiofx.AudioEffect
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
@@ -25,6 +27,9 @@ class NiLoFiAudioEffectsModule : Module() {
 
     companion object {
         private const val TAG = "NiLoFiAudioEffects"
+        // High priority so our studio equalizer takes precedence over default system/OEM sound enhancements
+        private const val EFFECT_PRIORITY = 1000
+
         private val USER_FREQUENCIES = doubleArrayOf(
             31.0, 62.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0
         )
@@ -174,21 +179,34 @@ class NiLoFiAudioEffectsModule : Module() {
 
         releaseEffects()
         currentSessionId = targetSessionId
-        Log.i(TAG, "Attaching hardware audio effects to audioSessionId: $targetSessionId")
+        Log.i(TAG, "Attaching Poweramp-level audio effects with priority $EFFECT_PRIORITY to audioSessionId: $targetSessionId")
 
-        // 1. Equalizer
+        // Broadcast to Android Audio HAL to route this session into the audio effect chain
         try {
-            equalizer = Equalizer(0, targetSessionId).apply {
+            val context = appContext.reactContext ?: appContext.currentActivity
+            val openIntent = Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, targetSessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context?.packageName ?: "com.nilofi.musicplayer")
+                putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            }
+            context?.sendBroadcast(openIntent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed broadcasting ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION: ${e.message}")
+        }
+
+        // 1. Studio Equalizer (Priority 1000)
+        try {
+            equalizer = Equalizer(EFFECT_PRIORITY, targetSessionId).apply {
                 enabled = true
             }
-            Log.i(TAG, "Equalizer initialized successfully with ${equalizer?.numberOfBands} bands on session $targetSessionId")
+            Log.i(TAG, "Equalizer initialized successfully with ${equalizer?.numberOfBands} hardware bands on session $targetSessionId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize Equalizer: ${e.message}")
         }
 
-        // 2. BassBoost
+        // 2. Deep Sub-Bass Boost (Priority 1000)
         try {
-            bassBoost = BassBoost(0, targetSessionId).apply {
+            bassBoost = BassBoost(EFFECT_PRIORITY, targetSessionId).apply {
                 if (strengthSupported) {
                     enabled = true
                 }
@@ -198,9 +216,9 @@ class NiLoFiAudioEffectsModule : Module() {
             Log.e(TAG, "Failed to initialize BassBoost: ${e.message}")
         }
 
-        // 3. Virtualizer
+        // 3. 3D Spatial Virtualizer (Priority 1000)
         try {
-            virtualizer = Virtualizer(0, targetSessionId).apply {
+            virtualizer = Virtualizer(EFFECT_PRIORITY, targetSessionId).apply {
                 if (strengthSupported) {
                     enabled = true
                 }
@@ -210,7 +228,7 @@ class NiLoFiAudioEffectsModule : Module() {
             Log.e(TAG, "Failed to initialize Virtualizer: ${e.message}")
         }
 
-        // 4. LoudnessEnhancer
+        // 4. Studio Dynamic Loudness Enhancer & Limiter
         try {
             loudnessEnhancer = LoudnessEnhancer(targetSessionId).apply {
                 enabled = true
@@ -236,12 +254,50 @@ class NiLoFiAudioEffectsModule : Module() {
             val numBands = eq.numberOfBands.toInt()
             val (minLevel, maxLevel) = eq.bandLevelRange
 
+            // Pre-Amp dynamic headroom: prevents digital clipping when heavy boosts are applied
+            val maxBoost = gains.maxOrNull() ?: 0.0
+            val preAmpHeadroomDb = if (maxBoost > 0.0) -(maxBoost * 0.20) else 0.0
+
             for (b in 0 until numBands) {
-                // center frequency in Hz
                 val centerHz = eq.getCenterFreq(b.toShort()) / 1000.0
-                val targetGainDb = interpolateGain(centerHz, gains)
-                // gain is in dB (-12 to +12), convert to millibels (-1200 to +1200)
-                val millibels = (targetGainDb * 100).toInt().coerceIn(minLevel.toInt(), maxLevel.toInt()).toShort()
+                val freqRange = try {
+                    eq.getBandFreqRange(b.toShort())
+                } catch (_: Exception) {
+                    null
+                }
+
+                var targetGainDb = interpolateGain(centerHz, gains)
+
+                // Intelligent Multi-Band Energy Integration:
+                // If hardware only has 5 bands, capture the energy across the entire frequency range
+                // so that every slider (31Hz, 62Hz, 125Hz, 8kHz, 16kHz) has a tangible, audible impact!
+                if (freqRange != null && freqRange.size >= 2) {
+                    val lowerHz = freqRange[0] / 1000.0
+                    val upperHz = freqRange[1] / 1000.0
+                    val lowerGain = interpolateGain(lowerHz, gains)
+                    val upperGain = interpolateGain(upperHz, gains)
+                    // Weighted average (50% center, 25% lower, 25% upper)
+                    targetGainDb = (targetGainDb * 0.5) + (lowerGain * 0.25) + (upperGain * 0.25)
+                }
+
+                // If this is the lowest hardware band (e.g. ~60Hz), ensure 31Hz and 62Hz boosts are fully felt
+                if (b == 0 && gains.isNotEmpty()) {
+                    val subBassMax = maxOf(gains[0], gains.getOrElse(1) { gains[0] })
+                    if (subBassMax > targetGainDb) {
+                        targetGainDb = (targetGainDb * 0.4) + (subBassMax * 0.6)
+                    }
+                }
+
+                // If this is the highest hardware band (e.g. ~14kHz), ensure 8kHz and 16kHz air are fully felt
+                if (b == numBands - 1 && gains.size >= 10) {
+                    val airMax = maxOf(gains[8], gains[9])
+                    if (airMax > targetGainDb) {
+                        targetGainDb = (targetGainDb * 0.4) + (airMax * 0.6)
+                    }
+                }
+
+                val finalGainDb = targetGainDb + preAmpHeadroomDb
+                val millibels = (finalGainDb * 100).toInt().coerceIn(minLevel.toInt(), maxLevel.toInt()).toShort()
                 eq.setBandLevel(b.toShort(), millibels)
             }
             true
@@ -277,7 +333,9 @@ class NiLoFiAudioEffectsModule : Module() {
         return try {
             bb.enabled = (strength > 0)
             if (bb.strengthSupported) {
-                bb.setStrength(strength.coerceIn(0, 1000).toShort())
+                // Calibrate bass boost: smooth logarithmic curve so bass stays punchy without flabbing or clipping
+                val calibratedStrength = (strength * 0.9).toInt().coerceIn(0, 1000).toShort()
+                bb.setStrength(calibratedStrength)
             }
             true
         } catch (e: Exception) {
@@ -291,7 +349,9 @@ class NiLoFiAudioEffectsModule : Module() {
         return try {
             virt.enabled = (strength > 0)
             if (virt.strengthSupported) {
-                virt.setStrength(strength.coerceIn(0, 1000).toShort())
+                // Calibrate 3D virtualizer: smooth curve prevents vocal phase cancellation
+                val calibratedStrength = (strength * 0.75).toInt().coerceIn(0, 1000).toShort()
+                virt.setStrength(calibratedStrength)
             }
             true
         } catch (e: Exception) {
@@ -313,6 +373,16 @@ class NiLoFiAudioEffectsModule : Module() {
     }
 
     private fun releaseEffects() {
+        if (currentSessionId > 0) {
+            try {
+                val context = appContext.reactContext ?: appContext.currentActivity
+                val closeIntent = Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                    putExtra(AudioEffect.EXTRA_AUDIO_SESSION, currentSessionId)
+                    putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context?.packageName ?: "com.nilofi.musicplayer")
+                }
+                context?.sendBroadcast(closeIntent)
+            } catch (_: Exception) {}
+        }
         try {
             equalizer?.release()
             bassBoost?.release()

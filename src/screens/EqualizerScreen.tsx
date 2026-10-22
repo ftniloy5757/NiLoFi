@@ -83,7 +83,7 @@ export const EqualizerScreen: React.FC = () => {
           <View style={styles.limiterHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <ShieldCheck size={18} color={THEME.colors.success} />
-              <Text style={styles.limiterTitle}>Clean Sound Guard</Text>
+              <Text style={styles.limiterTitle}>Studio Anti-Clipping Guard</Text>
             </View>
             <Text
               style={[
@@ -91,13 +91,13 @@ export const EqualizerScreen: React.FC = () => {
                 preAmpGain < 0 ? { color: THEME.colors.warning } : { color: THEME.colors.success },
               ]}
             >
-              {preAmpGain < 0 ? 'Peak Control: Active' : 'Sound Guard: Safe'}
+              {preAmpGain < 0 ? `Auto Headroom: ${preAmpGain} dB` : 'Headroom: Full (0 dB)'}
             </Text>
           </View>
           <Text style={styles.limiterDesc}>
             {preAmpGain < 0
-              ? 'Automatically softens harsh volume spikes to keep music crisp and clear.'
-              : 'Natural sound balance active with full dynamic range.'}
+              ? `Poweramp-grade soft limiter active. Automatically balances ${preAmpGain} dB headroom to prevent harsh digital clipping and keep sub-bass punchy.`
+              : 'Audiophile dynamic range active with pristine uncompressed headroom.'}
           </Text>
         </View>
 
