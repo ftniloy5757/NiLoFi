@@ -171,6 +171,7 @@ export class AudioEngine {
       await TrackPlayer.reset();
       await TrackPlayer.add([tpTrack]);
       await this.playWithMicroFade();
+      DSPEngine.reapplyCurrentPreset();
     } catch {}
   }
 

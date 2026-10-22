@@ -44,4 +44,11 @@ export default async function playbackService() {
       usePlayerStore.setState({ isPlaying: true });
     }
   });
+
+  TrackPlayer.addEventListener(Event.RemoteStop, async () => {
+    try {
+      await TrackPlayer.reset();
+      usePlayerStore.setState({ isPlaying: false });
+    } catch {}
+  });
 }

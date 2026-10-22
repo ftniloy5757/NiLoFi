@@ -103,6 +103,7 @@ export class LibraryScanner {
         vector: classification.vector,
         playCount: Math.floor(Math.random() * 8) + 2,
         skipCount: 0,
+        createdAt: item.year ? new Date(item.year, 0, 1).getTime() : Date.now(),
         isFavorite: item.id === 'seed-1',
         waveformPeaks: LibraryScanner.generateWaveformPeaks(item.title + item.artist),
       };
@@ -379,7 +380,8 @@ export class LibraryScanner {
           album,
           genre: 'Local',
           duration,
-          year: new Date(asset.creationTime).getFullYear() || 2024,
+          year: new Date(asset.creationTime || Date.now()).getFullYear() || 2024,
+          createdAt: asset.creationTime || asset.modificationTime || Date.now(),
           language: classification.language,
           era: classification.era,
           primaryMood: classification.primaryMood,

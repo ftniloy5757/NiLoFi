@@ -109,11 +109,20 @@ export class DSPEngine {
     this.currentPreset = preset;
     if (!this.isEnabled) return;
 
-    // Apply gains via native hardware module
+    NiLoFiAudioEffects.attachSession(0);
     NiLoFiAudioEffects.setEqualizerBands(preset.gains);
     NiLoFiAudioEffects.setBassBoost(preset.bassBoost);
     NiLoFiAudioEffects.setVirtualizer(preset.virtualizer);
     NiLoFiAudioEffects.setLoudnessEnhancer(preset.loudnessGain);
+  }
+
+  public reapplyCurrentPreset(): void {
+    if (!this.isEnabled) return;
+    NiLoFiAudioEffects.attachSession(0);
+    NiLoFiAudioEffects.setEqualizerBands(this.currentPreset.gains);
+    NiLoFiAudioEffects.setBassBoost(this.currentPreset.bassBoost);
+    NiLoFiAudioEffects.setVirtualizer(this.currentPreset.virtualizer);
+    NiLoFiAudioEffects.setLoudnessEnhancer(this.currentPreset.loudnessGain);
   }
 
   public setBandGain(bandIndex: number, gainDb: number): EqualizerPreset {

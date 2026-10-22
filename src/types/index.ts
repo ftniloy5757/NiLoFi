@@ -32,6 +32,7 @@ export interface Track {
   duration: number; // in seconds
   artwork?: string;
   year?: number;
+  createdAt?: number;
   language: AudioLanguage;
   era: AudioEra;
   primaryMood: AudioMood;

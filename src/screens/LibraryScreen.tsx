@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
+  ScrollView,
 } from 'react-native';
 import {
   Play,
@@ -19,6 +20,7 @@ import {
   X,
   Sparkles,
   RefreshCw,
+  ArrowUpDown,
 } from 'lucide-react-native';
 import THEME from '../constants/theme';
 import usePlayerStore from '../store/usePlayerStore';
@@ -31,6 +33,38 @@ const formatDuration = (secs: number) => {
   const s = Math.floor(secs % 60);
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 };
+
+export type SortField = 'title' | 'date' | 'listened';
+export type SortOrder = 'asc' | 'desc';
+
+export interface SortOptionConfig {
+  id: string;
+  field: SortField;
+  order: SortOrder;
+  label: string;
+  subLabel: string;
+}
+
+const SORT_OPTIONS: SortOptionConfig[] = [
+  { id: 'title_asc', field: 'title', order: 'asc', label: 'Name (A → Z)', subLabel: 'Alphabetical order' },
+  { id: 'title_desc', field: 'title', order: 'desc', label: 'Name (Z → A)', subLabel: 'Reverse alphabetical order' },
+  { id: 'date_desc', field: 'date', order: 'desc', label: 'Date (Newest)', subLabel: 'Recently added songs first' },
+  { id: 'date_asc', field: 'date', order: 'asc', label: 'Date (Oldest)', subLabel: 'Oldest added songs first' },
+  { id: 'listened_desc', field: 'listened', order: 'desc', label: 'Most Listened', subLabel: 'Highest play count first' },
+  { id: 'listened_asc', field: 'listened', order: 'asc', label: 'Least Listened', subLabel: 'Unplayed / fresh songs' },
+];
+
+const FILTER_OPTIONS = [
+  { id: 'all', label: 'ALL' },
+  { id: 'favorites', label: 'FAVORITES' },
+  { id: 'punjabi', label: 'PUNJABI' },
+  { id: 'bollywood', label: 'BOLLYWOOD' },
+  { id: 'lofi', label: 'LOFI' },
+  { id: 'english', label: 'ENGLISH' },
+  { id: 'romantic', label: 'ROMANTIC' },
+  { id: 'high_energy', label: 'PARTY & DANCE' },
+  { id: 'chill', label: 'CHILL' },
+] as const;
 
 export const LibraryScreen: React.FC = () => {
   const {
@@ -52,14 +86,16 @@ export const LibraryScreen: React.FC = () => {
   } = usePlayerStore();
 
   const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'favorites' | 'punjabi' | 'bollywood' | 'lofi'>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [selectedSort, setSelectedSort] = useState<SortOptionConfig>(SORT_OPTIONS[0]);
+  const [showSortModal, setShowSortModal] = useState(false);
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isCreatingInline, setIsCreatingInline] = useState(false);
 
   const filteredTracks = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return tracks.filter((track) => {
+    const matches = tracks.filter((track) => {
       const matchesSearch =
         !q ||
         track.title.toLowerCase().includes(q) ||
@@ -71,11 +107,40 @@ export const LibraryScreen: React.FC = () => {
       if (activeFilter === 'punjabi') return track.language === 'Punjabi';
       if (activeFilter === 'bollywood') return track.language === 'Hindi / Bollywood';
       if (activeFilter === 'lofi') return track.primaryMood === 'Lofi / Rain';
+      if (activeFilter === 'english') return track.language === 'English';
+      if (activeFilter === 'romantic') return track.primaryMood === 'Romantic';
+      if (activeFilter === 'high_energy') return track.primaryMood === 'High-Energy' || track.primaryMood === 'Mashup / Remix';
+      if (activeFilter === 'chill') return track.primaryMood === 'Chill' || track.primaryMood === 'Acoustic';
 
       return true;
     });
-  }, [tracks, search, activeFilter, favorites]);
 
+    // Apply sorting
+    matches.sort((a, b) => {
+      if (selectedSort.field === 'title') {
+        const cmp = a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true });
+        return selectedSort.order === 'asc' ? cmp : -cmp;
+      }
+      if (selectedSort.field === 'date') {
+        const timeA = a.createdAt || (a.year ? new Date(a.year, 0, 1).getTime() : 0);
+        const timeB = b.createdAt || (b.year ? new Date(b.year, 0, 1).getTime() : 0);
+        return selectedSort.order === 'asc' ? timeA - timeB : timeB - timeA;
+      }
+      if (selectedSort.field === 'listened') {
+        const playA = a.playCount || 0;
+        const playB = b.playCount || 0;
+        if (playA !== playB) {
+          return selectedSort.order === 'asc' ? playA - playB : playB - playA;
+        }
+        const lastA = a.lastPlayedAt || 0;
+        const lastB = b.lastPlayedAt || 0;
+        return selectedSort.order === 'asc' ? lastA - lastB : lastB - lastA;
+      }
+      return 0;
+    });
+
+    return matches;
+  }, [tracks, search, activeFilter, favorites, selectedSort]);
 
   const handleCreateAndAdd = async () => {
     if (!newPlaylistName.trim() || !playlistModalTrack) return;
@@ -102,45 +167,46 @@ export const LibraryScreen: React.FC = () => {
             }
           }}
         >
-        <View style={styles.iconBox}>
-          <Music2
-            size={20}
-            color={isCurrent ? THEME.colors.primaryNeon : THEME.colors.textSecondary}
-          />
-        </View>
-
-        <View style={styles.trackDetails}>
-          <Text
-            style={[styles.trackTitle, isCurrent && styles.activeTrackTitle]}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.trackArtist} numberOfLines={1}>
-              {item.artist}
-            </Text>
-            <View style={styles.pillBadge}>
-              <Text style={styles.pillText}>{item.language}</Text>
-            </View>
-            <Text style={styles.durationText}>{formatDuration(item.duration)}</Text>
+          <View style={styles.iconBox}>
+            <Music2
+              size={20}
+              color={isCurrent ? THEME.colors.primaryNeon : THEME.colors.textSecondary}
+            />
           </View>
-        </View>
-      </TouchableOpacity>
 
-        {/* Add to Playlist Button */}
+          <View style={styles.trackDetails}>
+            <Text
+              style={[styles.trackTitle, isCurrent && styles.activeTrackTitle]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.trackArtist} numberOfLines={1}>
+                {item.artist}
+              </Text>
+              <View style={styles.pillBadge}>
+                <Text style={styles.pillText}>{item.language}</Text>
+              </View>
+              <Text style={styles.durationText}>
+                {formatDuration(item.duration)}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Playlist & Favorite Actions */}
         <TouchableOpacity
-          onPress={() => setPlaylistModalTrack(item)}
           style={styles.actionIconButton}
+          onPress={() => setPlaylistModalTrack(item)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <ListPlus size={18} color={THEME.colors.textMuted} />
         </TouchableOpacity>
 
-        {/* Favorite Heart Button */}
         <TouchableOpacity
-          onPress={() => toggleFavorite(item.id)}
           style={styles.heartButton}
+          onPress={() => toggleFavorite(item.id)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Heart
@@ -155,7 +221,7 @@ export const LibraryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header />
+      <Header title="NiLoFi" />
 
       {/* Search Input */}
       <View style={styles.searchContainer}>
@@ -168,44 +234,68 @@ export const LibraryScreen: React.FC = () => {
         />
       </View>
 
-      {/* Filter Chips */}
-      <View style={styles.filterRow}>
-        {(['all', 'favorites', 'punjabi', 'bollywood', 'lofi'] as const).map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            onPress={() => setActiveFilter(filter)}
-            style={[
-              styles.filterChip,
-              activeFilter === filter && styles.activeFilterChip,
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                activeFilter === filter && styles.activeFilterText,
-              ]}
-            >
-              {filter.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      {/* Horizontally Swipeable Category Capsules */}
+      <View style={styles.filterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScrollContent}
+        >
+          {FILTER_OPTIONS.map((filter) => {
+            const isActive = activeFilter === filter.id;
+            return (
+              <TouchableOpacity
+                key={filter.id}
+                onPress={() => setActiveFilter(filter.id)}
+                style={[
+                  styles.filterChip,
+                  isActive && styles.activeFilterChip,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    isActive && styles.activeFilterText,
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Action Header */}
       <View style={styles.actionHeader}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.songCountText}>
-            {filteredTracks.length} {filteredTracks.length === 1 ? 'Song' : 'Songs'}
-          </Text>
+        <View style={styles.metaActionRow}>
+          <View style={styles.songCountGroup}>
+            <Text style={styles.songCountText}>
+              {filteredTracks.length} {filteredTracks.length === 1 ? 'Song' : 'Songs'}
+            </Text>
+            <TouchableOpacity
+              onPress={refreshLibrary}
+              style={styles.refreshBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <RefreshCw
+                size={13}
+                color={isScanning ? THEME.colors.primaryNeon : THEME.colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Sort Button */}
           <TouchableOpacity
-            onPress={refreshLibrary}
-            style={{ marginLeft: 8, padding: 4 }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.sortTriggerBtn}
+            onPress={() => setShowSortModal(true)}
+            activeOpacity={0.7}
           >
-            <RefreshCw
-              size={13}
-              color={isScanning ? THEME.colors.primaryNeon : THEME.colors.textMuted}
-            />
+            <ArrowUpDown size={12} color={THEME.colors.primaryNeon} />
+            <Text style={styles.sortTriggerText} numberOfLines={1}>
+              {selectedSort.label}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -221,8 +311,8 @@ export const LibraryScreen: React.FC = () => {
               size={14}
               color={
                 isAdaptiveShuffle
-                    ? THEME.colors.primaryNeon
-                    : THEME.colors.textSecondary
+                  ? THEME.colors.primaryNeon
+                  : THEME.colors.textSecondary
               }
             />
             <Text
@@ -254,34 +344,81 @@ export const LibraryScreen: React.FC = () => {
         renderItem={renderTrackItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        initialNumToRender={12}
-        maxToRenderPerBatch={10}
-        windowSize={7}
-        removeClippedSubviews={true}
-        refreshing={isScanning}
-        onRefresh={refreshLibrary}
+        ListFooterComponent={<CourtesyFooter />}
         ListEmptyComponent={
-          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
-            <Music2 size={36} color={THEME.colors.textMuted} style={{ marginBottom: 12, opacity: 0.6 }} />
-            <Text style={{ color: THEME.colors.textSecondary, fontSize: 15, fontWeight: '600', textAlign: 'center', marginBottom: 6 }}>
-              {isScanning
-                ? 'Scanning music from device storage...'
-                : search
-                ? `No songs matching "${search}"`
-                : 'No offline songs found'}
-            </Text>
-            <Text style={{ color: THEME.colors.textMuted, fontSize: 13, textAlign: 'center' }}>
-              {isScanning
-                ? 'Filtering out ringtones & system sounds...'
-                : 'Pull down to refresh or check permissions in Settings.'}
-            </Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No matching songs found</Text>
           </View>
         }
-        ListFooterComponent={<CourtesyFooter />}
       />
 
+      {/* Sort System Modal */}
+      <Modal
+        visible={showSortModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSortModal(false)}
+        >
+          <View style={styles.sortModalCard} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <ArrowUpDown size={18} color={THEME.colors.primaryNeon} style={{ marginRight: 8 }} />
+                <Text style={styles.modalTitle}>Sort Song List</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSortModal(false)}
+                style={styles.closeBtn}
+              >
+                <X size={18} color={THEME.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
 
-      {/* Modal: Add to Playlist */}
+            <View style={styles.sortOptionsList}>
+              {SORT_OPTIONS.map((opt) => {
+                const isSelected = selectedSort.id === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[
+                      styles.sortOptionItem,
+                      isSelected && styles.selectedSortOptionItem,
+                    ]}
+                    onPress={() => {
+                      setSelectedSort(opt);
+                      setShowSortModal(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.sortOptionTextGroup}>
+                      <Text
+                        style={[
+                          styles.sortOptionLabel,
+                          isSelected && styles.selectedSortOptionLabel,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                      <Text style={styles.sortOptionSubLabel}>{opt.subLabel}</Text>
+                    </View>
+                    {isSelected && (
+                      <View style={styles.sortCheckBadge}>
+                        <Check size={14} color="#000000" strokeWidth={3} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Add To Playlist Modal */}
       <Modal
         visible={!!playlistModalTrack}
         transparent
@@ -291,13 +428,23 @@ export const LibraryScreen: React.FC = () => {
           setIsCreatingInline(false);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            setPlaylistModalTrack(null);
+            setIsCreatingInline(false);
+          }}
+        >
+          <View
+            style={styles.modalCard}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
+              <View>
                 <Text style={styles.modalTitle}>Add to Playlist</Text>
                 <Text style={styles.modalSubtitle} numberOfLines={1}>
-                  {playlistModalTrack?.title} • {playlistModalTrack?.artist}
+                  {playlistModalTrack?.title}
                 </Text>
               </View>
               <TouchableOpacity
@@ -306,57 +453,54 @@ export const LibraryScreen: React.FC = () => {
                   setIsCreatingInline(false);
                 }}
               >
-                <X size={22} color={THEME.colors.textMuted} />
+                <X size={20} color={THEME.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            {/* List of custom playlists */}
-            <FlatList
-              data={customPlaylists}
-              keyExtractor={(pl) => pl.id}
-              style={{ maxHeight: 240, marginVertical: 8 }}
-              renderItem={({ item: pl }) => {
-                const isAdded = playlistModalTrack
-                  ? pl.trackIds.includes(playlistModalTrack.id)
-                  : false;
-
-                return (
-                  <TouchableOpacity
-                    style={styles.playlistSelectItem}
-                    onPress={() => {
-                      if (!playlistModalTrack) return;
-                      if (isAdded) {
-                        removeTrackFromPlaylist(pl.id, playlistModalTrack.id);
-                      } else {
-                        addTrackToPlaylist(pl.id, playlistModalTrack.id);
-                      }
-                    }}
+            {customPlaylists.map((pl) => {
+              const inPlaylist =
+                playlistModalTrack &&
+                pl.trackIds.includes(playlistModalTrack.id);
+              return (
+                <TouchableOpacity
+                  key={pl.id}
+                  style={styles.playlistSelectItem}
+                  onPress={async () => {
+                    if (!playlistModalTrack) return;
+                    if (inPlaylist) {
+                      await removeTrackFromPlaylist(
+                        pl.id,
+                        playlistModalTrack.id
+                      );
+                    } else {
+                      await addTrackToPlaylist(pl.id, playlistModalTrack.id);
+                    }
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.playlistSelectName}>{pl.name}</Text>
+                    <Text style={styles.playlistSelectSub}>
+                      {pl.trackIds.length}{' '}
+                      {pl.trackIds.length === 1 ? 'song' : 'songs'}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.checkCircle,
+                      inPlaylist && styles.activeCheckCircle,
+                    ]}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.playlistSelectName}>{pl.name}</Text>
-                      <Text style={styles.playlistSelectSub}>
-                        {pl.trackIds.length} {pl.trackIds.length === 1 ? 'song' : 'songs'}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.checkCircle,
-                        isAdded && styles.activeCheckCircle,
-                      ]}
-                    >
-                      {isAdded && <Check size={14} color="#000000" />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-            />
+                    {inPlaylist && <Check size={14} color="#000" />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
 
-            {/* Inline New Playlist Box */}
             {isCreatingInline ? (
               <View style={styles.inlineCreateBox}>
                 <TextInput
                   style={styles.inlineInput}
-                  placeholder="New playlist name..."
+                  placeholder="Playlist name..."
                   placeholderTextColor={THEME.colors.textMuted}
                   value={newPlaylistName}
                   onChangeText={setNewPlaylistName}
@@ -366,7 +510,7 @@ export const LibraryScreen: React.FC = () => {
                   style={styles.inlineSaveBtn}
                   onPress={handleCreateAndAdd}
                 >
-                  <Text style={styles.inlineSaveText}>Save & Add</Text>
+                  <Text style={styles.inlineSaveText}>Save</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -381,7 +525,7 @@ export const LibraryScreen: React.FC = () => {
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -406,17 +550,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: THEME.colors.cardBorder,
   },
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
+  filterWrapper: {
     paddingVertical: 12,
+  },
+  filterScrollContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   filterChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: THEME.colors.card,
-    marginRight: 8,
     borderWidth: 1,
     borderColor: THEME.colors.cardBorder,
   },
@@ -435,29 +582,57 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   actionHeader: {
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    gap: 8,
+  },
+  metaActionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 8,
+  },
+  songCountGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   songCountText: {
     color: THEME.colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },
+  refreshBtn: {
+    marginLeft: 6,
+    padding: 4,
+  },
+  sortTriggerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  sortTriggerText: {
+    color: THEME.colors.primaryNeon,
+    fontSize: 11,
+    fontWeight: '700',
+    marginLeft: 5,
+  },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   actionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: THEME.colors.card,
-    marginRight: 8,
     borderWidth: 1,
     borderColor: THEME.colors.cardBorder,
   },
@@ -469,21 +644,22 @@ const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
-    marginLeft: 5,
+    marginLeft: 6,
   },
   playAllBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: THEME.colors.primaryNeon,
   },
   playAllText: {
     color: '#000000',
     fontSize: 12,
     fontWeight: '700',
-    marginLeft: 5,
+    marginLeft: 6,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -561,10 +737,75 @@ const styles = StyleSheet.create({
   heartButton: {
     padding: 6,
   },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: THEME.colors.textMuted,
+    fontSize: 14,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
+  },
+  sortModalCard: {
+    backgroundColor: '#0A0F1D',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  sortOptionsList: {
+    marginTop: 8,
+  },
+  sortOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  selectedSortOptionItem: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderColor: THEME.colors.primaryNeon,
+  },
+  sortOptionTextGroup: {
+    flex: 1,
+  },
+  sortOptionLabel: {
+    color: THEME.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  selectedSortOptionLabel: {
+    color: THEME.colors.primaryNeon,
+  },
+  sortOptionSubLabel: {
+    color: THEME.colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sortCheckBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: THEME.colors.primaryNeon,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  closeBtn: {
+    padding: 4,
   },
   modalCard: {
     backgroundColor: '#0F172A',
