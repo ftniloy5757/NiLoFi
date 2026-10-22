@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import TrackPlayer from 'react-native-track-player';
 import {
   Track,
   SessionPreferenceVector,
@@ -13,6 +14,7 @@ import AdaptiveShuffleEngine from '../services/adaptiveShuffle';
 import LibraryScanner from '../services/libraryScanner';
 import SleepTimerService from '../services/sleepTimer';
 import PlaylistStorage from '../services/playlistStorage';
+import SettingsStorage, { UserSettings } from '../services/settingsStorage';
 
 interface PlayerState {
   // Library & Queue
@@ -26,6 +28,8 @@ interface PlayerState {
   isLoading: boolean;
   isScanning: boolean;
   searchQuery: string;
+  selectedSortId: string;
+  selectedFilterId: string;
   customPlaylists: CustomPlaylist[];
 
   // AI & Modes
@@ -51,6 +55,8 @@ interface PlayerState {
   toggleAdaptiveShuffle: () => void;
   toggleRepeat: () => void;
   toggleFavorite: (trackId: string) => void;
+  setSelectedSortId: (sortId: string) => void;
+  setSelectedFilterId: (filterId: string) => void;
   resetMood: () => void;
   setEQBand: (index: number, gainDb: number) => void;
   selectEQPreset: (preset: EqualizerPreset) => void;
@@ -80,6 +86,8 @@ const defaultStarterPlaylist: CustomPlaylist = {
   accentColor: '#38BDF8',
 };
 
+let lastSkipTimestamp = 0;
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   tracks: initialSeeds,
   queue: initialSeeds,
@@ -91,6 +99,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isLoading: false,
   isScanning: false,
   searchQuery: '',
+  selectedSortId: 'title_asc',
+  selectedFilterId: 'all',
   customPlaylists: [defaultStarterPlaylist],
 
   isAdaptiveShuffle: true,
@@ -109,14 +119,52 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const scanned = await LibraryScanner.scanDeviceAudio();
       if (scanned && scanned.length > 0) {
         const { currentTrack } = get();
-        const exists = currentTrack && scanned.some((t) => t.id === currentTrack.id);
-        const active = exists ? currentTrack : scanned[0];
+        const savedSettings = await SettingsStorage.loadSettings();
+
+        // 1. Check if user already has a currentTrack in memory
+        let active = currentTrack && scanned.some((t) => t.id === currentTrack.id) ? currentTrack : null;
+
+        // 2. Otherwise restore from persistent settings
+        let restoredPos = 0;
+        if (!active && savedSettings.lastPlayedTrackId) {
+          const matched = scanned.find((t) => t.id === savedSettings.lastPlayedTrackId);
+          if (matched) {
+            active = matched;
+            restoredPos = savedSettings.lastPlayedPosition || 0;
+          }
+        }
+
+        // 3. Fallback to first track
+        if (!active) {
+          active = scanned[0];
+        }
+
+        const activeIndex = scanned.findIndex((t) => t.id === active?.id);
+
         set({
           tracks: scanned,
           queue: scanned,
+          queueIndex: activeIndex >= 0 ? activeIndex : 0,
           currentTrack: active,
+          position: restoredPos,
           duration: active ? active.duration : 0,
         });
+
+        // Preload track in background into TrackPlayer so it's ready to play
+        try {
+          await TrackPlayer.reset();
+          await TrackPlayer.add([{
+            id: active.id,
+            url: active.url,
+            title: active.title,
+            artist: active.artist,
+            artwork: active.artwork || require('../../assets/icon.png'),
+            duration: active.duration,
+          }]);
+          if (restoredPos > 0) {
+            await TrackPlayer.seekTo(restoredPos);
+          }
+        } catch {}
       }
     } catch (err) {
       console.warn('Refresh library warning:', err);
@@ -129,14 +177,56 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     try {
       await AudioEngine.initialize().catch(() => {});
 
-      // Scan device audio
+      // 1. Load persistent user settings
+      const savedSettings = await SettingsStorage.loadSettings();
+
+      // 2. Restore Equalizer Preset and Sound Parameters
+      let restoredPreset = BUILT_IN_PRESETS[0];
+      if (savedSettings.activePresetId) {
+        const found = BUILT_IN_PRESETS.find((p) => p.id === savedSettings.activePresetId);
+        if (found) {
+          restoredPreset = {
+            ...found,
+            ...(savedSettings.customGains ? { gains: savedSettings.customGains } : {}),
+            ...(typeof savedSettings.bassBoost === 'number' ? { bassBoost: savedSettings.bassBoost } : {}),
+            ...(typeof savedSettings.virtualizer === 'number' ? { virtualizer: savedSettings.virtualizer } : {}),
+            ...(typeof savedSettings.loudnessGain === 'number' ? { loudnessGain: savedSettings.loudnessGain } : {}),
+          };
+        } else if (savedSettings.customGains) {
+          restoredPreset = {
+            id: 'custom_active',
+            name: 'Custom',
+            isCustom: true,
+            gains: savedSettings.customGains,
+            bassBoost: savedSettings.bassBoost ?? 0,
+            virtualizer: savedSettings.virtualizer ?? 0,
+            loudnessGain: savedSettings.loudnessGain ?? 0,
+          };
+        }
+      }
+
+      const isEQEnabled = savedSettings.isEQEnabled ?? true;
+      DSPEngine.applyPreset(restoredPreset);
+      DSPEngine.toggleEQ(isEQEnabled);
+
+      set({
+        activePreset: restoredPreset,
+        isEQEnabled,
+        favorites: savedSettings.favorites || ['seed-1'],
+        isAdaptiveShuffle: savedSettings.isAdaptiveShuffle ?? true,
+        isRepeat: savedSettings.isRepeat ?? false,
+        selectedSortId: savedSettings.selectedSortId || 'title_asc',
+        selectedFilterId: savedSettings.selectedFilterId || 'all',
+      });
+
+      // 3. Scan device audio and restore last played track
       try {
         await get().refreshLibrary();
       } catch (scanErr) {
         console.warn('Audio scan warning:', scanErr);
       }
 
-      // Load custom playlists from storage
+      // 4. Load custom playlists from storage
       try {
         const savedPlaylists = await PlaylistStorage.loadPlaylists();
         if (savedPlaylists && savedPlaylists.length > 0) {
@@ -148,14 +238,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         console.warn('Playlist load warning:', plErr);
       }
 
-      // Register Sleep Timer callbacks
+      // 5. Register Sleep Timer callbacks
       SleepTimerService.registerCallbacks(
         (st) => set({ sleepTimer: st }),
         (vol) => AudioEngine.setMasterVolume(vol),
         () => get().togglePlayPause()
       );
 
-      // Handle Route Changes
+      // 6. Handle Route Changes
       AudioEngine.onAudioRouteChange((route) => {
         const newPreset = DSPEngine.handleRouteChange(route);
         set({
@@ -205,11 +295,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isPlaying: true,
     });
 
+    // Persist last played song
+    SettingsStorage.saveSettings({
+      lastPlayedTrackId: track.id,
+      lastPlayedPosition: 0,
+    });
+
     await AudioEngine.setTrack(track);
   },
 
   togglePlayPause: async () => {
-    const { isPlaying, currentTrack, tracks } = get();
+    const { isPlaying, currentTrack, tracks, position } = get();
     if (!currentTrack && tracks.length > 0) {
       await get().playTrack(tracks[0]);
       return;
@@ -217,6 +313,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     if (isPlaying) {
       set({ isPlaying: false });
+      if (currentTrack) {
+        SettingsStorage.saveSettings({
+          lastPlayedTrackId: currentTrack.id,
+          lastPlayedPosition: position,
+        });
+      }
       await AudioEngine.pause();
     } else {
       set({ isPlaying: true });
@@ -225,6 +327,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   skipToNext: async () => {
+    const now = Date.now();
+    if (now - lastSkipTimestamp < 600) return;
+    lastSkipTimestamp = now;
+
     const { queue, queueIndex, currentTrack, position, duration, isAdaptiveShuffle, isRepeat } = get();
 
     if (currentTrack) {
@@ -266,6 +372,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         duration: nextTrack.duration,
         isPlaying: true,
       });
+
+      SettingsStorage.saveSettings({
+        lastPlayedTrackId: nextTrack.id,
+        lastPlayedPosition: 0,
+      });
+
       await AudioEngine.setTrack(nextTrack);
     }
   },
@@ -293,18 +405,32 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         duration: prevTrack.duration,
         isPlaying: true,
       });
+
+      SettingsStorage.saveSettings({
+        lastPlayedTrackId: prevTrack.id,
+        lastPlayedPosition: 0,
+      });
+
       await AudioEngine.setTrack(prevTrack);
     }
   },
 
   seekTo: async (seconds: number) => {
     set({ position: seconds });
+    const { currentTrack } = get();
+    if (currentTrack) {
+      SettingsStorage.saveSettings({
+        lastPlayedTrackId: currentTrack.id,
+        lastPlayedPosition: seconds,
+      });
+    }
     await AudioEngine.seekTo(seconds);
   },
 
   toggleAdaptiveShuffle: () => {
     const nextState = !get().isAdaptiveShuffle;
     set({ isAdaptiveShuffle: nextState });
+    SettingsStorage.saveSettings({ isAdaptiveShuffle: nextState });
     if (nextState) {
       const { queue, queueIndex } = get();
       const upcoming = queue.slice(queueIndex + 1);
@@ -314,7 +440,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   toggleRepeat: () => {
-    set({ isRepeat: !get().isRepeat });
+    const nextRepeat = !get().isRepeat;
+    set({ isRepeat: nextRepeat });
+    SettingsStorage.saveSettings({ isRepeat: nextRepeat });
   },
 
   toggleFavorite: (trackId: string) => {
@@ -324,7 +452,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     } else {
       favs.add(trackId);
     }
-    set({ favorites: Array.from(favs) });
+    const updated = Array.from(favs);
+    set({ favorites: updated });
+    SettingsStorage.saveSettings({ favorites: updated });
+  },
+
+  setSelectedSortId: (sortId: string) => {
+    set({ selectedSortId: sortId });
+    SettingsStorage.saveSettings({ selectedSortId: sortId });
+  },
+
+  setSelectedFilterId: (filterId: string) => {
+    set({ selectedFilterId: filterId });
+    SettingsStorage.saveSettings({ selectedFilterId: filterId });
   },
 
   resetMood: () => {
@@ -335,11 +475,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setEQBand: (index: number, gainDb: number) => {
     const updated = DSPEngine.setBandGain(index, gainDb);
     set({ activePreset: updated });
+    SettingsStorage.saveSettings({
+      activePresetId: 'custom_active',
+      customGains: updated.gains,
+    });
   },
 
   selectEQPreset: (preset: EqualizerPreset) => {
     DSPEngine.applyPreset(preset);
     set({ activePreset: preset });
+    SettingsStorage.saveSettings({
+      activePresetId: preset.id,
+      customGains: preset.gains,
+      bassBoost: preset.bassBoost,
+      virtualizer: preset.virtualizer,
+      loudnessGain: preset.loudnessGain,
+    });
   },
 
   setBassBoost: (strength: number) => {
@@ -347,6 +498,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set((state) => ({
       activePreset: { ...state.activePreset, bassBoost: strength },
     }));
+    SettingsStorage.saveSettings({ bassBoost: strength });
   },
 
   setVirtualizer: (strength: number) => {
@@ -354,12 +506,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set((state) => ({
       activePreset: { ...state.activePreset, virtualizer: strength },
     }));
+    SettingsStorage.saveSettings({ virtualizer: strength });
   },
 
   toggleEQ: () => {
     const nextVal = !get().isEQEnabled;
     DSPEngine.toggleEQ(nextVal);
     set({ isEQEnabled: nextVal });
+    SettingsStorage.saveSettings({ isEQEnabled: nextVal });
   },
 
   startSleepTimer: (minutes: number) => {

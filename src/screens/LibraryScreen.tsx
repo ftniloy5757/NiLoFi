@@ -82,10 +82,18 @@ export const LibraryScreen: React.FC = () => {
   const createPlaylist = usePlayerStore((s) => s.createPlaylist);
   const refreshLibrary = usePlayerStore((s) => s.refreshLibrary);
   const isScanning = usePlayerStore((s) => s.isScanning);
+  const selectedSortId = usePlayerStore((s) => s.selectedSortId);
+  const setSelectedSortId = usePlayerStore((s) => s.setSelectedSortId);
+  const selectedFilterId = usePlayerStore((s) => s.selectedFilterId);
+  const setSelectedFilterId = usePlayerStore((s) => s.setSelectedFilterId);
+
+  const selectedSort = useMemo(
+    () => SORT_OPTIONS.find((s) => s.id === selectedSortId) || SORT_OPTIONS[0],
+    [selectedSortId]
+  );
+  const activeFilter = selectedFilterId || 'all';
 
   const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [selectedSort, setSelectedSort] = useState<SortOptionConfig>(SORT_OPTIONS[0]);
   const [showSortModal, setShowSortModal] = useState(false);
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null);
   const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -244,7 +252,7 @@ export const LibraryScreen: React.FC = () => {
             return (
               <TouchableOpacity
                 key={filter.id}
-                onPress={() => setActiveFilter(filter.id)}
+                onPress={() => setSelectedFilterId(filter.id)}
                 style={[
                   styles.filterChip,
                   isActive && styles.activeFilterChip,
@@ -387,7 +395,7 @@ export const LibraryScreen: React.FC = () => {
                       isSelected && styles.selectedSortOptionItem,
                     ]}
                     onPress={() => {
-                      setSelectedSort(opt);
+                      setSelectedSortId(opt.id);
                       setShowSortModal(false);
                     }}
                     activeOpacity={0.7}

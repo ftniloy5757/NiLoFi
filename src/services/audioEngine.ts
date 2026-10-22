@@ -79,8 +79,6 @@ export class AudioEngine {
           usePlayerStore.setState({ isPlaying: true });
         } else if (event.state === State.Paused || event.state === State.Stopped) {
           usePlayerStore.setState({ isPlaying: false });
-        } else if (event.state === State.Ended) {
-          usePlayerStore.getState().skipToNext();
         }
       });
 

@@ -31,7 +31,7 @@ if (!content.includes('var sharedAudioSessionId: Int')) {
 // 2. Class definition and onCreate with Notification dismiss broadcast receiver
 const onCreateHook = `    private val notificationDismissReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Timber.d("NiLoFi: ACTION_DISMISS_NOTIFICATION received -> Quitting app.")
+            Timber.d("NiLoFi: ACTION_DISMISS_NOTIFICATION received -> User swiped notification out. Quitting app.")
             try {
                 player.clear()
                 player.stop()
@@ -149,7 +149,7 @@ if (setupPattern.test(content)) {
   content = content.replace(setupPattern, `${setupPlayerReplacement}\n        `);
 }
 
-// 5. NotificationState.POSTED: Attach deleteIntent so swiping out triggers dismiss receiver
+// 5. NotificationState.POSTED: Attach deleteIntent so swiping out notification triggers dismiss receiver
 const postedTarget = `notificationId = it.notificationId;
                         notification = it.notification;`;
 const postedReplacement = `notificationId = it.notificationId;
@@ -172,29 +172,14 @@ if (!content.includes('ACTION_DISMISS_NOTIFICATION").apply')) {
   content = content.replace(postedTarget, postedReplacement);
 }
 
-// 6. NotificationState.CANCELLED: Clean exit
-const cancelledHandler = `is NotificationState.CANCELLED -> {
-                        Timber.d("Notification swiped out / cancelled by user - exiting app")
-                        try {
-                            player.clear()
-                            player.stop()
-                        } catch (_: Exception) {}
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            stopForeground(true)
-                        }
-                        stopSelf()
-                        android.os.Process.killProcess(android.os.Process.myPid())
-                    }
-                    else -> {}`;
-
-if (!content.includes('Notification swiped out / cancelled by user')) {
-  content = content.replace('else -> {}', cancelledHandler);
+// 6. Ensure NotificationState.CANCELLED does NOT kill the app when a song ends!
+// Swiping out is strictly handled by deleteIntent / ACTION_DISMISS_NOTIFICATION above.
+const cancelledPattern = /is NotificationState\.CANCELLED -> \{[\s\S]*?else -> \{\}/;
+if (cancelledPattern.test(content)) {
+  content = content.replace(cancelledPattern, 'else -> {}');
 }
 
-// 7. MediaSessionCallback.STOP: Clean exit
+// 7. MediaSessionCallback.STOP: Clean exit when user explicitly hits Stop
 const stopTarget = 'MediaSessionCallback.STOP -> emit(MusicEvents.BUTTON_STOP)';
 const stopReplacement = `MediaSessionCallback.STOP -> {
                         emit(MusicEvents.BUTTON_STOP)
@@ -217,4 +202,4 @@ if (content.includes(stopTarget)) {
 }
 
 fs.writeFileSync(musicServicePath, content, 'utf8');
-console.log('[patch-track-player] Successfully patched MusicService.kt for audio effects and notification swipe-out app termination.');
+console.log('[patch-track-player] Successfully patched MusicService.kt for audio effects and swipe-out app termination without song-end auto-kill.');
